@@ -9,6 +9,7 @@ import { solutionStatusOptions, statusBgClass } from '@/lib/constants';
 import ExportButton from '@/components/ExportButton';
 import EntityList from '@/components/EntityList';
 import EntityForm from '@/components/EntityForm';
+import FilterBar from '@/components/FilterBar';
 import Pagination from '@/components/Pagination';
 import Loading from '@/components/Loading';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -101,11 +102,19 @@ const PAGE_SIZE = 20;
 export default function SolutionsPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const skip = (page - 1) * PAGE_SIZE;
   const { data, error, isLoading, mutate } = useSWR<Solution[]>(
-    `/solutions/?skip=${skip}&limit=${PAGE_SIZE}`, fetchAPI
+    `/solutions/?skip=${skip}&limit=${PAGE_SIZE}${filterStatus ? `&status=${filterStatus}` : ''}`, fetchAPI
   );
-  const { data: countData } = useSWR<{ count: number }>('/solutions/count/', fetchAPI);
+  const { data: countData } = useSWR<{ count: number }>(
+    `/solutions/count/${filterStatus ? `?status=${filterStatus}` : ''}`,
+    fetchAPI
+  );
+  const { data: allCountData } = useSWR<{ count: number }>(
+    filterStatus ? '/solutions/count/' : null,
+    fetchAPI
+  );
   const { mutate: globalMutate } = useSWRConfig();
   const { confirm } = useConfirm();
   const { toast } = useToast();
@@ -284,6 +293,14 @@ export default function SolutionsPage() {
           }}
         />
       )}
+
+      <FilterBar
+        statusFilters={solutionStatusOptions.map(o => ({ value: o.value, label: o.label }))}
+        activeStatus={filterStatus}
+        onStatusChange={(s) => { setFilterStatus(s); setPage(1); }}
+        filteredCount={filterStatus ? total : undefined}
+        totalCount={filterStatus ? (allCountData?.count ?? total) : undefined}
+      />
 
       <EntityList entityType="solution"
         data={data || []}
