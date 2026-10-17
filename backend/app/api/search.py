@@ -1,7 +1,7 @@
-"""Search API — 支持中文子串匹配、标签筛选和日期范围。"""
+"""Search API — 支持中文子串匹配、标签筛选、日期范围和真实计数。"""
 from datetime import date, datetime, time, timedelta, timezone
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
@@ -35,9 +35,12 @@ async def search(
     tag_id: int | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
+    limit: int = Query(20, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
 ):
     results = []
+    type_counts: dict[str, int] = {}
+    total = 0
 
     # 前端传的是北京时间日期，转成带时区的 datetime 边界下推到 SQL 比较
     # （DB 存 UTC timestamptz，直接比较 date 会差 8 小时导致边界数据丢失）
@@ -74,8 +77,15 @@ async def search(
         query = select(model)
         if conditions:
             query = query.where(*conditions)
+        # 真实计数下推 SQL（与结果同条件，不受 limit 影响）
+        count_query = select(func.count(model.id))
+        if conditions:
+            count_query = count_query.where(*conditions)
+        type_count = (await db.execute(count_query)).scalar_one()
+        type_counts[etype] = type_count
+        total += type_count
         # 最新优先，保证 limit 截断后返回的是最近的数据
-        query = query.order_by(model.created_at.desc()).limit(20)
+        query = query.order_by(model.created_at.desc()).limit(limit)
 
         result = await db.execute(query)
         items = result.scalars().all()
@@ -94,7 +104,12 @@ async def search(
                 "created_at": created_at,
             })
 
-    return {"query": q or "", "results": results, "total": len(results)}
+    return {
+        "query": q or "",
+        "results": results,
+        "total": total,
+        "type_counts": type_counts,
+    }
 
 
 def _get_snippet(item, fields, query: str | None) -> str:

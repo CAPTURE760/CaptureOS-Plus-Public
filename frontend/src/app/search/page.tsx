@@ -25,6 +25,7 @@ interface SearchResponse {
   query: string;
   results: SearchResult[];
   total: number;
+  type_counts?: Record<string, number>;
 }
 
 const entityLabels: Record<string, string> = {
@@ -116,8 +117,12 @@ function SearchPageInner() {
   // 否则点"全部时间"清空日期后 URL 无参数，页面会空白
   const showAll = searchParams.get('all') === '1';
   const hasConditions = !!(queryParam || entityFilter || tagFilter || startDate || endDate || showAll);
+
+  // 平铺视图（已选类型）的加载更多：limit 递增重取，切类型时重置
+  const [limit, setLimit] = useState(20);
+  useEffect(() => { setLimit(20); }, [entityFilter]);
   const { data, error, isLoading } = useSWR<SearchResponse>(
-    hasConditions ? `/search/?${searchParams.toString()}` : null,
+    hasConditions ? `/search/?${searchParams.toString()}${entityFilter ? `&limit=${limit}` : ''}` : null,
     fetchAPI
   );
 
@@ -219,25 +224,46 @@ function SearchPageInner() {
               {data.results.map((result) => (
                 <SearchResultItem key={`${result.entity_type}-${result.entity_id}`} result={result} query={data.query} />
               ))}
+              {(data.type_counts?.[entityFilter] ?? data.results.length) > data.results.length && (
+                <button
+                  type="button"
+                  onClick={() => setLimit(l => l + 50)}
+                  className="w-full py-2.5 text-sm text-blue-600 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  加载更多（已显示 {data.results.length} / 共 {data.type_counts?.[entityFilter]} 条）
+                </button>
+              )}
             </div>
           ) : (
             // 全局搜索：按类型分组展示
             <div className="space-y-6">
-              {Object.entries(grouped).map(([type, items]) => (
+              {Object.entries(grouped).map(([type, items]) => {
+                const typeTotal = data.type_counts?.[type] ?? items.length;
+                return (
                 <div key={type}>
                   <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2">
                     <span className={`px-2 py-0.5 rounded text-xs ${entityColors[type]}`}>
                       {entityLabels[type]}
                     </span>
-                    <span>({items.length})</span>
+                    <span>({typeTotal})</span>
                   </h3>
                   <div className="space-y-2">
                     {items.map((result) => (
                       <SearchResultItem key={`${result.entity_type}-${result.entity_id}`} result={result} query={data.query} />
                     ))}
                   </div>
+                  {typeTotal > items.length && (
+                    <button
+                      type="button"
+                      onClick={() => updateParams({ entity_type: type })}
+                      className="mt-2 text-sm text-blue-600 hover:underline"
+                    >
+                      还有 {typeTotal - items.length} 条，点击查看全部{entityLabels[type]} →
+                    </button>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
