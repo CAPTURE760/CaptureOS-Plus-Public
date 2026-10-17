@@ -56,7 +56,9 @@ export default function ExportButton({ entityType, variant = 'small', className 
       const today = new Date().toISOString().slice(0, 10);
 
       if (format === 'json') {
-        url = `${API_BASE}/export/`;
+        url = (types && types.length > 0 && types.length < ENTITY_OPTIONS.length)
+          ? `${API_BASE}/export/?types=${types.join(',')}`
+          : `${API_BASE}/export/`;
         filename = `captureos-export-${today}.json`;
       } else if (entityType) {
         url = `${API_BASE}/export/word/${entityType}`;
@@ -149,17 +151,16 @@ export default function ExportButton({ entityType, variant = 'small', className 
 
             {format === 'json' && (
               <p className="text-xs text-gray-500 mb-4 bg-gray-50 rounded-lg px-3 py-2">
-                JSON 导出包含全部数据（含标签、关联、附件记录），可通过首页「导入数据」恢复。附件文件本体需另外备份 uploads 目录。
+                JSON 导出包含所选模块数据（自动附带标签、关联、附件记录），可通过首页「导入数据」恢复。附件文件本体需另外备份 uploads 目录。
               </p>
             )}
 
             {/* 全选/全不选 */}
-            <label className={`flex items-center gap-2 py-2 px-3 rounded-lg mb-2 border-b border-gray-100 ${format === 'json' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'}`}>
+            <label className="flex items-center gap-2 py-2 px-3 rounded-lg mb-2 border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
               <input
                 type="checkbox"
                 checked={selected.size === ENTITY_OPTIONS.length}
                 onChange={toggleAll}
-                disabled={format === 'json'}
                 className="w-4 h-4 rounded text-blue-600"
               />
               <span className="text-sm font-medium text-gray-700">
@@ -168,17 +169,16 @@ export default function ExportButton({ entityType, variant = 'small', className 
             </label>
 
             {/* 各模块选项 */}
-            <div className={`space-y-1 mb-5 ${format === 'json' ? 'opacity-50' : ''}`}>
+            <div className="space-y-1 mb-5">
               {ENTITY_OPTIONS.map(opt => (
                 <label
                   key={opt.key}
-                  className={`flex items-center gap-2 py-2 px-3 rounded-lg ${format === 'json' ? 'cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'}`}
+                  className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-gray-50 cursor-pointer"
                 >
                   <input
                     type="checkbox"
                     checked={selected.has(opt.key)}
                     onChange={() => toggle(opt.key)}
-                    disabled={format === 'json'}
                     className="w-4 h-4 rounded text-blue-600"
                   />
                   <span className="text-sm text-gray-700">{opt.label}</span>
@@ -196,7 +196,7 @@ export default function ExportButton({ entityType, variant = 'small', className 
               </button>
               <button
                 onClick={() => doExport(Array.from(selected))}
-                disabled={(format === 'word' && selected.size === 0) || exporting}
+                disabled={selected.size === 0 || exporting}
                 className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {exporting ? '导出中...' : format === 'json' ? '导出 JSON' : `导出 (${selected.size})`}
