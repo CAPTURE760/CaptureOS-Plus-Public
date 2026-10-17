@@ -44,7 +44,7 @@
 | 📁 **项目管理** | 创建和跟踪项目，记录状态、优先级、时间线 |
 | 💡 **经验记录** | 记录学习经验、背景、结果和教训 |
 | ⚠️ **问题追踪** | 记录问题详情、状态、根本原因和发现时间 |
-| 🔧 **解决方案** | 保存问题解决方法、实施效果和有效性评分 |
+| 🔧 **解决方案** | 保存问题解决方法、实施效果、有效性评分和状态流转（待采用/已采用/已废弃） |
 | 📚 **知识库** | 积累知识，按分类整理，记录来源和置信度 |
 | 🎯 **决策记录** | 记录决策背景、选项、理由和最终结果 |
 | 📝 **复盘总结** | 记录复盘摘要、成功/失败因素和改进措施 |
@@ -65,9 +65,12 @@
 |------|------|
 | 🏷️ **标签系统** | 为任意实体添加标签，灵活分类，支持等级标记 |
 | 📅 **时间线** | 支持链路视图（折叠展示关联链路）和列表视图 |
-| 🔍 **全文搜索** | 基于 PostgreSQL tsvector 的高性能全文检索 |
-| 📊 **仪表盘** | 查看各模块统计和最近更新 |
+| 🔍 **全文搜索** | ILIKE + pg_trgm 中文子串匹配，类型/标签/日期组合筛选，结果关键词高亮，返回保留搜索状态 |
+| 📊 **仪表盘** | 待处理、风险提醒、状态概览、最近动态四区块 |
 | 🔄 **批量操作** | 批量删除、批量打标签、**批量改状态**、批量导出 Word |
+| 📎 **附件上传** | 任意实体可上传附件，详情页下载/删除，文件名哈希防冲突 |
+| 📥 **导出 / 导入** | Word（阅读用）+ JSON（迁移用）双格式导出，JSON 可再导入形成闭环 |
+| 💾 **自动备份** | 启动时自动备份数据库 + 附件，幂等设计，保留最近 14 天 |
 | 📱 **移动端适配** | 手机端抽屉式侧边栏、卡片列表、响应式弹窗 |
 
 ---
@@ -317,11 +320,11 @@ docker compose up -d       # 预构建镜像用：docker compose -f docker-compo
 
 ### Windows 一键启动
 
-将 `start.bat` 放到桌面，双击即可自动完成：启动 Docker → 启动服务 → 打开浏览器。
+将 `start-captureos.bat` 放到桌面，双击即可自动完成：启动 Docker → 启动服务 → 打开浏览器 → 触发备份。
 
 > 首次使用需修改 bat 文件中 Docker Desktop 路径为你的实际安装路径。
 
-**start.bat：**
+**start-captureos.bat：**
 
 ```bat
 @echo off
@@ -329,29 +332,34 @@ chcp 65001 >nul
 title CaptureOS 启动器
 set DOCKER_PATH=D:\Docker\Docker Desktop.exe
 
-echo [1/4] 检查 Docker Desktop...
+echo [1/5] 检查 Docker Desktop...
 tasklist /FI "IMAGENAME eq Docker Desktop.exe" 2>NUL | find /I "Docker Desktop.exe" >NUL
-if %ERRORLEVEL% NEQ 0 (
-    start "" "%DOCKER_PATH%"
-    :wait_docker
-    timeout /t 5 /nobreak >nul
-    docker info >nul 2>&1
-    if %ERRORLEVEL% NEQ 0 goto wait_docker
-)
+if %ERRORLEVEL% EQU 0 goto docker_ready
+start "" "%DOCKER_PATH%"
+:wait_docker
+timeout /t 5 /nobreak >nul
+docker info >nul 2>&1
+if %ERRORLEVEL% NEQ 0 goto wait_docker
+:docker_ready
 
-echo [2/4] 启动 CaptureOS 服务...
-wsl -e bash -c "cd ~/CaptureOS && docker compose up -d"
+echo [2/5] 启动 CaptureOS 服务...
+wsl -d Ubuntu -- bash -c "cd /home/oyweiyuan/CaptureOS && docker compose up -d"
 
-echo [3/4] 等待服务就绪...
+echo [3/5] 等待服务就绪...
 :wait_service
 timeout /t 3 /nobreak >nul
 curl -s http://localhost:3000 >nul 2>&1
 if %ERRORLEVEL% NEQ 0 goto wait_service
 
-echo [4/4] 打开浏览器...
+echo [4/5] 打开浏览器...
 start http://localhost:3000
+
+echo [5/5] 自动备份（今天已备份则跳过）...
+wsl -d Ubuntu -- /home/oyweiyuan/CaptureOS/scripts/backup.sh
 pause
 ```
+
+> ⚠️ 两个硬性要求：① bat 文件必须保存为 **CRLF 行尾**（LF 行尾会导致 cmd 在 chcp 65001 下解析中文 echo 行出错）；② 启动服务必须走 `wsl` 执行，不能 `cd /d \\wsl.localhost\...`（CMD 不支持 UNC 路径作为当前目录）。
 
 ### 手机 / 局域网访问
 
@@ -406,18 +414,27 @@ CaptureOS-plus/
 │   │   │   ├── relations.py         # 关系接口
 │   │   │   ├── suggestions.py       # 关联推荐接口
 │   │   │   ├── entity_relations.py  # 实体关联公共逻辑
-│   │   │   ├── search.py            # 全文搜索接口 (tsvector)
+│   │   │   ├── search.py            # 搜索接口 (ILIKE + pg_trgm)
 │   │   │   ├── timeline.py          # 时间线接口 (+ 链路聚合)
-│   │   │   └── dashboard.py         # 仪表盘接口
+│   │   │   ├── dashboard.py         # 仪表盘接口
+│   │   │   ├── export.py            # JSON 导出（含附件元数据）
+│   │   │   ├── export_word.py       # Word 导出
+│   │   │   ├── import_data.py       # JSON 导入（ID 重映射）
+│   │   │   ├── upload.py            # 附件上传
+│   │   │   └── file_attachments.py  # 附件查询/下载/删除
 │   │   ├── models/                   # 数据库模型
 │   │   ├── schemas/                  # Pydantic 数据模式
+│   │   ├── backup.py                # 备份触发逻辑（lifespan 钩子）
 │   │   ├── config.py                # 配置管理
 │   │   ├── database.py              # 数据库连接
 │   │   └── main.py                  # FastAPI 入口
-│   ├── alembic/                      # 数据库迁移
+│   ├── alembic/                      # 数据库迁移（001~012）
 │   │   └── versions/
-│   │       ├── 001_initial_tables.py # 初始表结构
-│   │       └── 002_add_indexes_and_fts.py  # 索引 + 全文检索
+│   │       ├── 001_initial_tables.py        # 初始表结构
+│   │       ├── ...
+│   │       ├── 011_add_file_attachment_table.py  # 附件表
+│   │       └── 012_add_solution_status.py        # 解决方案状态
+│   ├── uploads/                      # 附件存储（gitignore，不进镜像）
 │   ├── Dockerfile
 │   └── pyproject.toml
 ├── frontend/                         # 前端服务
@@ -429,8 +446,6 @@ CaptureOS-plus/
 │   │   │   │   ├── page.tsx         # 列表页
 │   │   │   │   └── [id]/page.tsx    # 详情页 (Project Hub)
 │   │   │   ├── issues/              # 问题页面
-│   │   │   │   ├── page.tsx
-│   │   │   │   └── [id]/page.tsx    # 详情页
 │   │   │   ├── solutions/           # 解决方案页面
 │   │   │   ├── knowledge/           # 知识页面
 │   │   │   ├── decisions/           # 决策页面
@@ -438,26 +453,38 @@ CaptureOS-plus/
 │   │   │   ├── experiences/         # 经验页面
 │   │   │   ├── tags/                # 标签页面
 │   │   │   ├── timeline/            # 时间线页面 (链路/列表)
-│   │   │   └── search/              # 搜索页面
+│   │   │   └── search/              # 搜索页面（状态保持）
 │   │   ├── components/               # 共享组件
-│   │   │   ├── Sidebar.tsx          # 侧边栏导航
-│   │   │   ├── EntityForm.tsx       # 通用表单组件
-│   │   │   ├── EntityList.tsx       # 通用列表组件
-│   │   │   ├── EntityDetail.tsx     # 通用详情页组件
+│   │   │   ├── Sidebar.tsx          # 侧边栏导航（角标 + 移动端抽屉）
+│   │   │   ├── EntityForm.tsx       # 通用表单组件（含附件上传）
+│   │   │   ├── EntityList.tsx       # 通用列表组件（分页 + 批量操作）
+│   │   │   ├── EntityDetail.tsx     # 通用详情页组件（含附件列表）
 │   │   │   ├── RelationPicker.tsx   # 关联选择弹窗
 │   │   │   ├── SuggestionBar.tsx    # 关联推荐提示栏
-│   │   │   └── TagPicker.tsx        # 标签选择弹窗
+│   │   │   ├── TagPicker.tsx        # 标签选择弹窗
+│   │   │   ├── ExportButton.tsx     # 导出按钮（Word/JSON 弹窗）
+│   │   │   ├── ConfirmDialog.tsx    # 自定义确认弹窗
+│   │   │   ├── Toast.tsx            # Toast 提示
+│   │   │   ├── Loading.tsx          # 加载 Spinner
+│   │   │   ├── Pagination.tsx       # 分页导航
+│   │   │   ├── FilterBar.tsx        # 筛选栏
+│   │   │   └── BeijingTime.tsx      # 北京时间（防重渲染）
 │   │   └── lib/
-│   │       ├── api.ts               # API 工具函数
+│   │       ├── api.ts               # API 工具函数（动态推断后端地址）
 │   │       ├── constants.ts         # 全局颜色/选项常量
 │   │       └── time.ts              # 时间格式化
 │   ├── Dockerfile
 │   ├── next.config.js
 │   └── package.json
-├── docker-compose.yml              # 源码构建配置
+├── scripts/
+│   ├── backup.sh                     # 备份脚本（SQL + uploads 打包，幂等）
+│   └── restore.sh                    # 恢复脚本（整库原样还原）
+├── backups/                          # 备份输出目录（gitignore）
+├── docker-compose.yml              # 源码构建配置（含 backup sidecar）
 ├── docker-compose.pull.yml         # 预构建镜像配置
-├── start.bat                       # Windows 一键启动脚本
-├── push.sh                         # 构建+推送镜像脚本（开发者用）
+├── start-captureos.bat              # Windows 一键启动（含备份触发）
+├── push.sh                          # 构建+推送镜像脚本（开发者用）
+├── VERSIONS.md                      # 镜像版本记录
 ├── .gitignore
 └── README.md
 ```
@@ -503,10 +530,31 @@ CaptureOS-plus/
 |------|------|------|
 | `/api/tags/` | `GET/POST` | 标签管理 |
 | `/api/tags/assign` | `POST` | 给实体打标签 |
-| `/api/search/?q=` | `GET` | 全文搜索（PostgreSQL tsvector） |
+| `/api/search/?q=` | `GET` | 搜索（ILIKE + pg_trgm，支持类型/标签/日期组合筛选） |
 | `/api/timeline/` | `GET` | 时间线（扁平列表） |
 | `/api/timeline/chains` | `GET` | **时间线链路聚合** |
 | `/api/dashboard/` | `GET` | 仪表盘数据 |
+| `/api/dashboard/counts` | `GET` | 侧边栏角标计数（轻量） |
+
+### 数据导出 / 导入接口
+
+| 接口 | 方法 | 描述 |
+|------|------|------|
+| `/api/export/` | `GET` | JSON 全量导出（含附件元数据） |
+| `/api/export/word/` | `GET` | Word 导出（全部模块） |
+| `/api/export/word/{entity_type}` | `GET` | Word 导出（单模块） |
+| `/api/export/word/{entity_type}/selected` | `POST` | Word 导出（勾选条目） |
+| `/api/import/` | `POST` | JSON 导入（ID 重映射 + 按标题去重） |
+
+### 附件接口
+
+| 接口 | 方法 | 描述 |
+|------|------|------|
+| `/api/upload/` | `POST` | 上传附件（表单建好后关联实体） |
+| `/api/upload/to-entity` | `POST` | 上传并直接挂到指定实体 |
+| `/api/file-attachments/entity/{type}/{id}` | `GET` | 查询实体的附件列表 |
+| `/api/file-attachments/{file_id}` | `GET` | 下载附件 |
+| `/api/file-attachments/{file_id}` | `DELETE` | 删除附件 |
 
 ### 预设关系类型
 
@@ -943,6 +991,39 @@ $env:BACKEND_TAG="v1.0"; $env:FRONTEND_TAG="v1.0"; docker compose -f docker-comp
 **为什么：** 附件功能是记录和分享的重要能力，N+1查询和同步DB会话严重影响性能，CORS配置过于宽松存在安全风险，生产环境配置不规范可能导致安全漏洞。
 
 **效果：** 附件系统完整可用，性能大幅提升（N+1查询优化80%+），系统更安全（CORS、异步DB、生产配置），用户体验更好（即时上传、默认排序、取消选择）。
+
+---
+
+### 第十八阶段：解决方案状态字段 + Windows 启动脚本（v1.8）
+
+**做了什么：**
+- **解决方案状态字段**：Solution 新增 `status` 字段（待采用/已采用/已废弃），迁移 012，列表页支持状态筛选，与知识、决策的状态流转对齐
+- **状态常量前缀隔离**：constants.ts 中解决方案的 pending/deprecated 与决策的同名状态用 `solution.` 前缀区分，避免颜色映射互相覆盖
+- **start-captureos.bat**：Windows 一键启动脚本，自动完成"检查 Docker → 启动服务 → 等待就绪 → 打开浏览器"四步（后续在第十九阶段加入第 5 步备份触发）
+- **直接调 Windows 版 docker compose**：不再走 `wsl -e bash -c`，启动链路更短，依赖更少
+
+**为什么：** 方案登记后没有生命周期，"这个方案后来用了没有"无从追踪；每次开机手动敲命令启动服务太繁琐。
+
+**效果：** 方案有状态闭环，Windows 双击即可启动整套系统。
+
+---
+
+### 第十九阶段：搜索修复 + JSON 导出导入闭环 + 自动备份机制
+
+**做了什么：**
+- **搜索页状态保持**：搜索关键词、类型、标签、日期条件同步到 URL query + sessionStorage，从搜索结果跳详情页再返回不丢失
+- **搜索过滤下推 SQL**：日期/标签过滤从"先 LIMIT 20 再内存过滤"改为下推 WHERE 再 LIMIT，修复过滤后结果缺失的问题；同时把前端传入的北京时间日期转成带时区边界再与 UTC timestamptz 比较，修复 ±8 小时边界数据丢失
+- **导出格式统一弹窗**：ExportButton 改为弹窗选择 Word 或 JSON 一种格式，避免页面上堆多个导出按钮
+- **JSON 导出导入闭环**：JSON 导出补充 `file_attachments` 附件元数据；导入端做 entity_id 重映射（旧 ID → 新 ID，关联关系不丢）+ safe_name 附件去重，补上了"有导入无导出"的功能断头路
+- **自动备份机制（三层触发）**：backup sidecar 容器（`docker:24-cli` 镜像挂 docker socket，直接 `docker exec` 调 db 容器的 pg_dump，不侵入 backend 镜像）+ FastAPI lifespan 启动钩子 + start-captureos.bat 第 5 步，谁先执行谁备份
+- **备份幂等 + 保留策略**：同一天只备份一次（按当日文件是否存在判断），自动保留最近 14 天（按 mtime 清理）
+- **备份/恢复脚本**：`scripts/backup.sh` 生成 `captureos-YYYY-MM-DD.sql`（pg_dump custom 格式）+ `captureos-YYYY-MM-DD-uploads.tar.gz`（附件打包）；`scripts/restore.sh` 一键整库原样还原（含原 ID）
+- **类型修复**：constants.ts 重复键覆盖问题 + 20 处 TS 类型错误修复
+- **启动脚本修复**：start-captureos.bat 改回从 WSL 内执行 `docker compose up -d`（第十八阶段尝试的 `cd /d \\wsl.localhost\...` 不可行，CMD 不支持 UNC 路径作为当前目录，导致 compose 在错误目录执行找不到配置文件）；同时修复 bat 文件 LF 行尾在 chcp 65001 下导致 echo 中文行被拆分报错的问题，强制 CRLF 行尾
+
+**为什么：** 搜索筛选条件在 LIMIT 之后才应用导致结果不准，UTC/北京时间差 8 小时导致边界数据丢失；只有 Word 导出没有 JSON 导出，已有的 JSON 导入功能成为断头路，数据无法跨实例迁移；系统每天使用但没有备份，一旦误删 `docker compose down -v` 数据全丢。
+
+**效果：** 搜索结果准确且返回不丢状态，数据可以完整导出-迁移-导入形成闭环，每天首次启动自动备份，14 天内任意一天可整库还原。
 
 ---
 
