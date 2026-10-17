@@ -16,6 +16,7 @@ class Solution(Base):
     approach: Mapped[str | None] = mapped_column(Text, nullable=True)
     outcome: Mapped[str | None] = mapped_column(Text, nullable=True)
     effectiveness: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="pending")  # pending/adopted/deprecated
     implemented_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     attachments: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

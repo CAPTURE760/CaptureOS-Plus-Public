@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import useSWR, { useSWRConfig } from 'swr';
 import { fetchAPI } from '@/lib/api';
 import { formatBeijingTime } from '@/lib/time';
+import { solutionStatusOptions, statusBgClass } from '@/lib/constants';
 import ExportButton from '@/components/ExportButton';
 import EntityList from '@/components/EntityList';
 import EntityForm from '@/components/EntityForm';
@@ -27,6 +28,7 @@ interface Solution {
   approach: string | null;
   outcome: string | null;
   effectiveness: number | null;
+  status: string;
   implemented_date: string | null;
   created_at: string;
   updated_at: string;
@@ -34,6 +36,7 @@ interface Solution {
 
 const fields = [
   { name: 'title', label: '标题', required: true },
+  { name: 'status', label: '状态', type: 'select' as const, options: solutionStatusOptions },
   { name: 'description', label: '描述', type: 'textarea' as const, rows: 4 },
   { name: 'approach', label: '方法', type: 'textarea' as const, rows: 5 },
   { name: 'outcome', label: '结果', type: 'textarea' as const, rows: 5 },
@@ -50,6 +53,19 @@ const fields = [
 
 const columns = [
   { key: 'title', label: '标题', width: '25%' },
+  {
+    key: 'status',
+    label: '状态',
+    render: (item: Solution) => {
+      const statusLabel = solutionStatusOptions.find(s => s.value === item.status)?.label || item.status;
+      return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBgClass[item.status] || 'bg-gray-100 text-gray-800'}`}>
+          {statusLabel}
+        </span>
+      );
+    },
+    width: '12%',
+  },
   {
     key: 'effectiveness',
     label: '有效性',

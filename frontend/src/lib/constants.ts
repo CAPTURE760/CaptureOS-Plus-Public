@@ -29,6 +29,10 @@ export const statusBgClass: Record<string, string> = {
   unverified:   'bg-indigo-100 text-indigo-800',
   verified:     'bg-green-100 text-green-800',
   outdated:     'bg-yellow-100 text-yellow-800',
+  // Solutions
+  pending:      'bg-cyan-100 text-cyan-800',
+  adopted:      'bg-emerald-100 text-emerald-800',
+  deprecated:   'bg-slate-200 text-slate-700',
 };
 
 // 筛选栏 chip 用的 active/idle 颜色
@@ -46,6 +50,9 @@ export const statusChipColor: Record<string, { active: string; idle: string }> =
   unverified:   { active: 'bg-violet-600 text-white border-violet-600', idle: 'border-violet-300 text-violet-700 hover:bg-violet-50' },
   verified:     { active: 'bg-green-600 text-white border-green-600', idle: 'border-green-300 text-green-700 hover:bg-green-50' },
   outdated:     { active: 'bg-yellow-500 text-white border-yellow-500', idle: 'border-yellow-300 text-yellow-700 hover:bg-yellow-50' },
+  pending:      { active: 'bg-cyan-600 text-white border-cyan-600', idle: 'border-cyan-300 text-cyan-700 hover:bg-cyan-50' },
+  adopted:      { active: 'bg-emerald-600 text-white border-emerald-600', idle: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
+  deprecated:   { active: 'bg-slate-600 text-white border-slate-600', idle: 'border-slate-400 text-slate-700 hover:bg-slate-100' },
 };
 
 // 中文标签 → Tailwind class（列表列用）
@@ -64,6 +71,9 @@ export const statusLabelClass: Record<string, string> = {
   '待确认':   'bg-gray-100 text-gray-800',
   '已验证':   'bg-green-100 text-green-800',
   '已过时':   'bg-yellow-100 text-yellow-800',
+  '待采用':   'bg-cyan-100 text-cyan-800',
+  '已采用':   'bg-emerald-100 text-emerald-800',
+  '已废弃':   'bg-slate-200 text-slate-700',
 };
 
 // ─── 优先级 ──────────────────────────────────────────
@@ -116,4 +126,10 @@ export const knowledgeStatusOptions: StatusOption[] = [
   { value: 'unverified', label: '待确认' },
   { value: 'verified',   label: '已验证' },
   { value: 'outdated',   label: '已过时' },
+];
+
+export const solutionStatusOptions: StatusOption[] = [
+  { value: 'pending',    label: '待采用' },
+  { value: 'adopted',    label: '已采用' },
+  { value: 'deprecated', label: '已废弃' },
 ];

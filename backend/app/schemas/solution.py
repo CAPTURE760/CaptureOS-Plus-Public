@@ -23,6 +23,7 @@ class SolutionBase(BaseModel):
     approach: Optional[str] = None
     outcome: Optional[str] = None
     effectiveness: Optional[int] = None
+    status: Optional[str] = "pending"  # pending/adopted/deprecated
     implemented_date: Optional[datetime] = None
     attachments: Optional[list[dict]] = None
 
@@ -48,6 +49,7 @@ class SolutionUpdate(BaseModel):
     approach: Optional[str] = None
     outcome: Optional[str] = None
     effectiveness: Optional[int] = None
+    status: Optional[str] = None  # pending/adopted/deprecated
     implemented_date: Optional[datetime] = None
     attachments: Optional[list[dict]] = None
 

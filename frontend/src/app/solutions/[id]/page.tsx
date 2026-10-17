@@ -9,6 +9,7 @@ import EntityForm from '@/components/EntityForm';
 import Loading from '@/components/Loading';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
+import { solutionStatusOptions } from '@/lib/constants';
 
 interface PendingFile {
   file: File;
@@ -19,6 +20,7 @@ interface PendingFile {
 
 const fields = [
   { name: 'title', label: '标题', required: true },
+  { name: 'status', label: '状态', type: 'select' as const, options: solutionStatusOptions },
   { name: 'description', label: '描述', type: 'textarea' as const, rows: 4 },
   { name: 'approach', label: '方法', type: 'textarea' as const, rows: 5 },
   { name: 'outcome', label: '结果', type: 'textarea' as const, rows: 5 },
