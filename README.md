@@ -322,44 +322,17 @@ docker compose up -d       # 预构建镜像用：docker compose -f docker-compo
 
 将 `start-captureos.bat` 放到桌面，双击即可自动完成：启动 Docker → 启动服务 → 打开浏览器 → 触发备份。
 
-> 首次使用需修改 bat 文件中 Docker Desktop 路径为你的实际安装路径。
-
-**start-captureos.bat：**
+bat 只是 5 行的纯 ASCII 启动器，**所有逻辑和中文输出都在 `scripts/start-captureos.sh`**（首次使用改该文件顶部的 `DOCKER_DESKTOP` 为你的 Docker Desktop 实际路径）：
 
 ```bat
 @echo off
+rem CaptureOS launcher - ASCII only, do not add non-ASCII characters here.
 chcp 65001 >nul
-title CaptureOS 启动器
-set DOCKER_PATH=D:\Docker\Docker Desktop.exe
-
-echo [1/5] 检查 Docker Desktop...
-tasklist /FI "IMAGENAME eq Docker Desktop.exe" 2>NUL | find /I "Docker Desktop.exe" >NUL
-if %ERRORLEVEL% EQU 0 goto docker_ready
-start "" "%DOCKER_PATH%"
-:wait_docker
-timeout /t 5 /nobreak >nul
-docker info >nul 2>&1
-if %ERRORLEVEL% NEQ 0 goto wait_docker
-:docker_ready
-
-echo [2/5] 启动 CaptureOS 服务...
-wsl -d Ubuntu -- bash -c "cd /home/oyweiyuan/CaptureOS && docker compose up -d"
-
-echo [3/5] 等待服务就绪...
-:wait_service
-timeout /t 3 /nobreak >nul
-curl -s http://localhost:3000 >nul 2>&1
-if %ERRORLEVEL% NEQ 0 goto wait_service
-
-echo [4/5] 打开浏览器...
-start http://localhost:3000
-
-echo [5/5] 自动备份（今天已备份则跳过）...
-wsl -d Ubuntu -- /home/oyweiyuan/CaptureOS/scripts/backup.sh
+wsl -d Ubuntu -- bash /home/oyweiyuan/CaptureOS/scripts/start-captureos.sh
 pause
 ```
 
-> ⚠️ 两个硬性要求：① bat 文件必须保存为 **CRLF 行尾**（LF 行尾会导致 cmd 在 chcp 65001 下解析中文 echo 行出错）；② 启动服务必须走 `wsl` 执行，不能 `cd /d \\wsl.localhost\...`（CMD 不支持 UNC 路径作为当前目录）。
+> 为什么这样设计：bat 里写中文 + 复杂逻辑有两个硬伤——① cmd 在 chcp 65001 下解析 UTF-8 多字节字符容易把 echo 行从中间拆开（报 `xxx is not recognized`）；② 编辑器保存时行尾/BOM 一旦被改就复发。把逻辑放进 .sh（UTF-8+LF 本来就是它的标准格式），bat 保持纯 ASCII 无标签无括号块，任何编辑器怎么保存都不会坏。
 
 ### 手机 / 局域网访问
 
@@ -478,7 +451,8 @@ CaptureOS-plus/
 │   └── package.json
 ├── scripts/
 │   ├── backup.sh                     # 备份脚本（SQL + uploads 打包，幂等）
-│   └── restore.sh                    # 恢复脚本（整库原样还原）
+│   ├── restore.sh                    # 恢复脚本（整库原样还原）
+│   └── start-captureos.sh            # 启动逻辑（被 start-captureos.bat 调用）
 ├── backups/                          # 备份输出目录（gitignore）
 ├── docker-compose.yml              # 源码构建配置（含 backup sidecar）
 ├── docker-compose.pull.yml         # 预构建镜像配置
@@ -1019,7 +993,7 @@ $env:BACKEND_TAG="v1.0"; $env:FRONTEND_TAG="v1.0"; docker compose -f docker-comp
 - **备份幂等 + 保留策略**：同一天只备份一次（按当日文件是否存在判断），自动保留最近 14 天（按 mtime 清理）
 - **备份/恢复脚本**：`scripts/backup.sh` 生成 `captureos-YYYY-MM-DD.sql`（pg_dump custom 格式）+ `captureos-YYYY-MM-DD-uploads.tar.gz`（附件打包）；`scripts/restore.sh` 一键整库原样还原（含原 ID）
 - **类型修复**：constants.ts 重复键覆盖问题 + 20 处 TS 类型错误修复
-- **启动脚本修复**：start-captureos.bat 改回从 WSL 内执行 `docker compose up -d`（第十八阶段尝试的 `cd /d \\wsl.localhost\...` 不可行，CMD 不支持 UNC 路径作为当前目录，导致 compose 在错误目录执行找不到配置文件）；同时修复 bat 文件 LF 行尾在 chcp 65001 下导致 echo 中文行被拆分报错的问题，强制 CRLF 行尾
+- **启动脚本修复**：start-captureos.bat 重构为 5 行纯 ASCII 启动器，全部逻辑（Docker 检查/compose 启动/等待就绪/打开浏览器/备份）移入 `scripts/start-captureos.sh`。原因：bat 里写中文在 chcp 65001 下解析不稳（echo 行被拆开报 is not recognized），且 cd /d \\wsl.localhost UNC 路径不可行（CMD 不支持）；编辑器保存改动行尾/BOM 后问题复发。.sh 原生 UTF-8+LF 无此问题
 
 **为什么：** 搜索筛选条件在 LIMIT 之后才应用导致结果不准，UTC/北京时间差 8 小时导致边界数据丢失；只有 Word 导出没有 JSON 导出，已有的 JSON 导入功能成为断头路，数据无法跨实例迁移；系统每天使用但没有备份，一旦误删 `docker compose down -v` 数据全丢。
 
