@@ -1,13 +1,16 @@
 """Generic CRUD router factory."""
+import os
 from typing import Any, Generic, Sequence, Type, TypeVar
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.database import Base
+from app.models import ENTITY_TYPES, EntityTag, FileAttachment, Relation
+from app.api.upload import UPLOAD_DIR
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -92,6 +95,44 @@ def create_crud_router(
         db_item = result.scalar_one_or_none()
         if db_item is None:
             raise HTTPException(status_code=404, detail=f"{model.__name__} not found")
+
+        # 级联清理多态关联数据（entity_tags / relations / file_attachments），
+        # 这些表没有外键约束，不清理会随时间累积孤儿数据
+        entity_type = model.__name__.lower()
+        if entity_type in ENTITY_TYPES:
+            await db.execute(
+                delete(EntityTag).where(
+                    EntityTag.entity_type == entity_type,
+                    EntityTag.entity_id == item_id,
+                )
+            )
+            await db.execute(
+                delete(Relation).where(
+                    or_(
+                        and_(Relation.source_type == entity_type, Relation.source_id == item_id),
+                        and_(Relation.target_type == entity_type, Relation.target_id == item_id),
+                    )
+                )
+            )
+            att_result = await db.execute(
+                select(FileAttachment).where(
+                    FileAttachment.entity_type == entity_type,
+                    FileAttachment.entity_id == item_id,
+                )
+            )
+            attachments = att_result.scalars().all()
+            for att in attachments:
+                # 删除 uploads 中的物理文件
+                phys_path = os.path.join(UPLOAD_DIR, att.safe_name)
+                if os.path.exists(phys_path):
+                    os.remove(phys_path)
+            await db.execute(
+                delete(FileAttachment).where(
+                    FileAttachment.entity_type == entity_type,
+                    FileAttachment.entity_id == item_id,
+                )
+            )
+
         await db.delete(db_item)
 
     @router.get("/count/", response_model=dict[str, int])
