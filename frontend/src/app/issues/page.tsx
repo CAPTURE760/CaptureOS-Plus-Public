@@ -21,7 +21,7 @@ interface PendingFile {
   type?: string;
 }
 
-interface Issue {
+type Issue = {
   id: number;
   title: string;
   description: string | null;

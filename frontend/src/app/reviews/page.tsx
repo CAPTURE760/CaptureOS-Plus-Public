@@ -20,7 +20,7 @@ interface PendingFile {
   type?: string;
 }
 
-interface Review {
+type Review = {
   id: number;
   title: string;
   event_summary: string | null;

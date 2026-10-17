@@ -10,7 +10,7 @@ import Loading from '@/components/Loading';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
 
-interface Tag {
+type Tag = {
   id: number;
   name: string;
   color: string | null;

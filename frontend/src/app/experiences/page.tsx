@@ -20,7 +20,7 @@ interface PendingFile {
   type?: string;
 }
 
-interface Experience {
+type Experience = {
   id: number;
   title: string;
   summary: string | null;

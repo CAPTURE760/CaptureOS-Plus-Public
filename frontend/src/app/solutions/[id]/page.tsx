@@ -44,7 +44,7 @@ export default function SolutionDetailPage() {
   const { toast } = useToast();
   const filesMutateRef = useRef<(() => void) | null>(null);
 
-  const { data: entity, error, isLoading, mutate } = useSWR(`/solutions/${id}`, fetchAPI);
+  const { data: entity, error, isLoading, mutate } = useSWR<Record<string, unknown>>(`/solutions/${id}`, fetchAPI);
 
   const handleDelete = async () => {
     const ok = await confirm({

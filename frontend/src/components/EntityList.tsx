@@ -317,7 +317,7 @@ export default function EntityList<T extends { id: number }>({
                 )}
                 <div className="flex-1 min-w-0" onClick={() => onView?.(item)}>
                   <div className="font-medium text-gray-900 truncate">
-                    {(item as Record<string, unknown>)[columns[0]?.key] ?? '-'}
+                    {String((item as Record<string, unknown>)[columns[0]?.key] ?? '-')}
                   </div>
                   {(mobileKeys
                     ? columns.filter(c => mobileKeys.includes(c.key))

@@ -22,7 +22,7 @@ interface PendingFile {
 }
 import { decisionStatusOptions, statusBgClass } from '@/lib/constants';
 
-interface Decision {
+type Decision = {
   id: number;
   title: string;
   background: string | null;

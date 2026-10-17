@@ -356,7 +356,7 @@ export default function EntityDetail({
           <div className="flex flex-wrap gap-2">
             {currentTags.length > 0 ? currentTags.map((tag) => tag && (
               <span key={tag.id} className="px-2 py-1 rounded text-xs"
-                style={{ backgroundColor: `${tag.color}20`, border: `1px solid ${tag.color}40`, color: tag.color }}>
+                style={{ backgroundColor: `${tag.color}20`, border: `1px solid ${tag.color}40`, color: tag.color ?? undefined }}>
                 {tag.name}
               </span>
             )) : <span className="text-sm text-gray-400">暂无标签</span>}

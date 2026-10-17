@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { fetchAPI } from '@/lib/api';
 import { formatBeijingTime } from '@/lib/time';
@@ -44,6 +44,9 @@ const entityRoutes: Record<string, string> = {
   solution: '/solutions', knowledge: '/knowledge', decision: '/decisions', review: '/reviews',
 };
 
+// sessionStorage key：侧边栏无参进入 /search 时从此恢复上次搜索状态
+const SEARCH_STATE_KEY = 'captureos-search-params';
+
 // 关键词高亮组件
 function HighlightText({ text, query }: { text: string; query: string }) {
   if (!query.trim() || !text) return <>{text}</>;
@@ -62,35 +65,74 @@ function HighlightText({ text, query }: { text: string; query: string }) {
   );
 }
 
-export default function SearchPage() {
+function SearchPageInner() {
   const router = useRouter();
-  const [query, setQuery] = useState('');
-  const [entityFilter, setEntityFilter] = useState('');
-  const [tagFilter, setTagFilter] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const searchParams = useSearchParams();
+
+  // URL 是搜索状态的唯一来源，跳转详情再返回时随 URL 恢复
+  const queryParam = searchParams.get('q') || '';
+  const entityFilter = searchParams.get('entity_type') || '';
+  const tagFilter = searchParams.get('tag_id') || '';
+  const startDate = searchParams.get('start_date') || '';
+  const endDate = searchParams.get('end_date') || '';
+
+  // 输入框本地 state：输入过程不触发请求，点搜索才写入 URL
+  const [queryInput, setQueryInput] = useState(queryParam);
+
+  // 浏览器前进/后退导致 URL 变化时，同步输入框显示
+  useEffect(() => {
+    setQueryInput(queryParam);
+  }, [queryParam]);
+
+  // 侧边栏无参进入时，从 sessionStorage 恢复上次搜索状态
+  useEffect(() => {
+    if (!searchParams.toString()) {
+      const saved = sessionStorage.getItem(SEARCH_STATE_KEY);
+      if (saved) router.replace(`/search?${saved}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 有参数时持久化到 sessionStorage
+  useEffect(() => {
+    const qs = searchParams.toString();
+    if (qs) sessionStorage.setItem(SEARCH_STATE_KEY, qs);
+  }, [searchParams]);
+
+  const updateParams = (updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/search?${qs}` : '/search');
+  };
 
   // 获取所有标签
   const { data: tags } = useSWR<Tag[]>('/tags/', fetchAPI);
 
-  const params = new URLSearchParams();
-  if (query.trim()) params.set('q', query.trim());
-  if (entityFilter) params.set('entity_type', entityFilter);
-  if (tagFilter) params.set('tag_id', tagFilter);
-  if (startDate) params.set('start_date', startDate);
-  if (endDate) params.set('end_date', endDate);
-
-  // 有筛选条件或已提交搜索时触发请求
-  const shouldFetch = submitted || entityFilter || tagFilter || startDate || endDate;
+  // all=1 是"全部时间"的显式标记：无任何条件时 URL 也需要有参数才能触发请求，
+  // 否则点"全部时间"清空日期后 URL 无参数，页面会空白
+  const showAll = searchParams.get('all') === '1';
+  const hasConditions = !!(queryParam || entityFilter || tagFilter || startDate || endDate || showAll);
   const { data, error, isLoading } = useSWR<SearchResponse>(
-    shouldFetch ? `/search/?${params.toString()}` : null,
+    hasConditions ? `/search/?${searchParams.toString()}` : null,
     fetchAPI
   );
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    const q = queryInput.trim();
+    if (q) {
+      // 有关键词：清掉 all 标记（请求由 q 触发）
+      updateParams({ q, all: '' });
+    } else if (!entityFilter && !tagFilter && !startDate && !endDate) {
+      // 空关键词且无条件：等价"全部时间"
+      updateParams({ q: '', all: '1' });
+    } else {
+      updateParams({ q: '' });
+    }
   };
 
   // 按类型分组结果
@@ -109,14 +151,14 @@ export default function SearchPage() {
         <div className="flex gap-3 mb-3">
           <input
             type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={queryInput}
+            onChange={(e) => setQueryInput(e.target.value)}
             placeholder="输入关键词，或直接选择类型/标签筛选"
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <select
             value={entityFilter}
-            onChange={(e) => setEntityFilter(e.target.value)}
+            onChange={(e) => updateParams({ entity_type: e.target.value })}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
             <option value="">全部类型</option>
@@ -126,7 +168,7 @@ export default function SearchPage() {
           </select>
           <select
             value={tagFilter}
-            onChange={(e) => setTagFilter(e.target.value)}
+            onChange={(e) => updateParams({ tag_id: e.target.value })}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
             <option value="">全部标签</option>
@@ -141,16 +183,22 @@ export default function SearchPage() {
         </div>
         <div className="flex gap-3 items-center text-sm">
           <div className="flex gap-1.5">
-            <DateQuickBtn label="今天" startDate={startDate} endDate={endDate} setStartDate={setStartDate} setEndDate={setEndDate} preset="today" />
-            <DateQuickBtn label="本周" startDate={startDate} endDate={endDate} setStartDate={setStartDate} setEndDate={setEndDate} preset="week" />
-            <DateQuickBtn label="本月" startDate={startDate} endDate={endDate} setStartDate={setStartDate} setEndDate={setEndDate} preset="month" />
-            <DateQuickBtn label="全部时间" startDate={startDate} endDate={endDate} setStartDate={setStartDate} setEndDate={setEndDate} preset="all" />
+            <DateQuickBtn label="今天" startDate={startDate} endDate={endDate} preset="today"
+              onChange={(s, e) => updateParams({ start_date: s, end_date: e, all: '' })} />
+            <DateQuickBtn label="本周" startDate={startDate} endDate={endDate} preset="week"
+              onChange={(s, e) => updateParams({ start_date: s, end_date: e, all: '' })} />
+            <DateQuickBtn label="本月" startDate={startDate} endDate={endDate} preset="month"
+              onChange={(s, e) => updateParams({ start_date: s, end_date: e, all: '' })} />
+            <DateQuickBtn label="全部时间" startDate={startDate} endDate={endDate} preset="all"
+              onChange={(s, e) => updateParams({ start_date: s, end_date: e, all: '1' })} />
           </div>
           <span className="text-gray-400">|</span>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+          <input type="date" value={startDate}
+            onChange={(e) => updateParams({ start_date: e.target.value, all: '' })}
             className="px-2 py-1.5 border border-gray-300 rounded text-sm" />
           <span className="text-gray-400">~</span>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+          <input type="date" value={endDate}
+            onChange={(e) => updateParams({ end_date: e.target.value, all: '' })}
             className="px-2 py-1.5 border border-gray-300 rounded text-sm" />
         </div>
       </form>
@@ -193,7 +241,9 @@ export default function SearchPage() {
             </div>
           )}
         </div>
-      ) : null}
+      ) : (
+        <div className="text-center py-8 text-gray-400">输入关键词或选择筛选条件开始搜索，点"全部时间"浏览全部记录</div>
+      )}
     </div>
   );
 }
@@ -223,10 +273,10 @@ function SearchResultItem({ result, query }: { result: SearchResult; query: stri
 
 const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-function DateQuickBtn({ label, startDate, endDate, setStartDate, setEndDate, preset }: {
+function DateQuickBtn({ label, startDate, endDate, preset, onChange }: {
   label: string; startDate: string; endDate: string;
-  setStartDate: (v: string) => void; setEndDate: (v: string) => void;
   preset: 'today' | 'week' | 'month' | 'all';
+  onChange: (start: string, end: string) => void;
 }) {
   const now = new Date();
   const today = fmtDate(now);
@@ -241,10 +291,10 @@ function DateQuickBtn({ label, startDate, endDate, setStartDate, setEndDate, pre
     startDate === thisMonthStart && endDate === today;
 
   const handleClick = () => {
-    if (preset === 'today') { setStartDate(today); setEndDate(today); }
-    else if (preset === 'week') { setStartDate(thisWeekStart); setEndDate(today); }
-    else if (preset === 'month') { setStartDate(thisMonthStart); setEndDate(today); }
-    else { setStartDate(''); setEndDate(''); }
+    if (preset === 'today') onChange(today, today);
+    else if (preset === 'week') onChange(thisWeekStart, today);
+    else if (preset === 'month') onChange(thisMonthStart, today);
+    else onChange('', '');
   };
 
   return (
@@ -254,5 +304,13 @@ function DateQuickBtn({ label, startDate, endDate, setStartDate, setEndDate, pre
       }`}>
       {label}
     </button>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-8">加载中...</div>}>
+      <SearchPageInner />
+    </Suspense>
   );
 }

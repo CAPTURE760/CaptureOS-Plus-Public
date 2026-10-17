@@ -21,7 +21,7 @@ interface PendingFile {
   type?: string;
 }
 
-interface Solution {
+type Solution = {
   id: number;
   title: string;
   description: string | null;
@@ -59,7 +59,7 @@ const columns = [
     render: (item: Solution) => {
       const statusLabel = solutionStatusOptions.find(s => s.value === item.status)?.label || item.status;
       return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBgClass[item.status] || 'bg-gray-100 text-gray-800'}`}>
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBgClass[`solution.${item.status}`] || statusBgClass[item.status] || 'bg-gray-100 text-gray-800'}`}>
           {statusLabel}
         </span>
       );

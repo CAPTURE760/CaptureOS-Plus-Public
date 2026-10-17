@@ -42,7 +42,7 @@ export default function KnowledgeDetailPage() {
   const { toast } = useToast();
   const filesMutateRef = useRef<(() => void) | null>(null);
 
-  const { data: entity, error, isLoading, mutate } = useSWR(`/knowledges/${id}`, fetchAPI);
+  const { data: entity, error, isLoading, mutate } = useSWR<Record<string, unknown>>(`/knowledges/${id}`, fetchAPI);
 
   const handleDelete = async () => {
     const ok = await confirm({

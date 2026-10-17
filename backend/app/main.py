@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app.backup import run_backup
 from app.config import settings
 
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
@@ -12,6 +13,9 @@ UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 启动时自动备份（异步执行不阻塞启动，幂等：同一天只备份一次）
+    import asyncio
+    asyncio.create_task(run_backup())
     yield
 
 

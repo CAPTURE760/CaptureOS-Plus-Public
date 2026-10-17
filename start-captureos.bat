@@ -41,8 +41,14 @@ echo       服务已就绪！
 echo.
 
 :: 打开浏览器
-echo [4/4] 打开浏览器...
+echo [4/5] 打开浏览器...
 start http://localhost:3000
+echo.
+
+:: 启动时自动备份（幂等，同一天只备份一次，保留最近14天）
+echo [5/5] 自动备份（今天已备份则跳过）...
+wsl -d Ubuntu -- /home/oyweiyuan/CaptureOS/scripts/backup.sh
+echo      备份目录: \\wsl.localhost\Ubuntu\home\oyweiyuan\CaptureOS\backups
 echo.
 
 echo ========================================

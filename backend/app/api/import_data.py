@@ -21,6 +21,7 @@ from app.models import (
     Relation,
     RelationType,
 )
+from app.models.file_attachment import FileAttachment
 
 router = APIRouter(prefix="/import", tags=["import"])
 
@@ -51,6 +52,7 @@ REQUIRED_FIELDS: dict[str, list[str]] = {
     "decisions": ["title"],
     "reviews": ["title"],
     "relation_types": ["name"],
+    "file_attachments": ["entity_type", "entity_id", "original_name", "safe_name"],
 }
 
 # 各实体合法枚举值
@@ -155,7 +157,8 @@ async def import_data(
 
     # --- 0. 预校验：检查必填字段和枚举值 ---
     entity_keys = ["tags", "relation_types", "projects", "experiences",
-                   "issues", "solutions", "knowledge", "decisions", "reviews"]
+                   "issues", "solutions", "knowledge", "decisions", "reviews",
+                   "file_attachments"]
     for entity_key in entity_keys:
         items = data.get(entity_key, [])
         for idx, item in enumerate(items):
@@ -339,6 +342,40 @@ async def import_data(
         rel_imported += 1
     imported["relations"] = rel_imported
     skipped["relations"] = rel_skipped
+
+    # --- 6. 导入 file_attachments（entity_id 需要重映射，safe_name 去重）---
+    fa_imported, fa_skipped = 0, 0
+    existing_fa_result = await db.execute(select(FileAttachment.safe_name))
+    existing_safe_names = {row[0] for row in existing_fa_result.all()}
+    for item in data.get("file_attachments", []):
+        safe_name = item.get("safe_name", "")
+        if safe_name in existing_safe_names:
+            fa_skipped += 1
+            continue
+        entity_type = item.get("entity_type", "")
+        old_entity_id = item.get("entity_id")
+        entity_id_map = id_maps.get(entity_type, {})
+        new_entity_id = entity_id_map.get(old_entity_id, old_entity_id)
+        # 重映射后实体不存在（实体本身被跳过）时，附件记录也跳过
+        if entity_id_map and old_entity_id is not None and old_entity_id not in entity_id_map:
+            fa_skipped += 1
+            continue
+        db_item = FileAttachment(
+            entity_type=entity_type,
+            entity_id=new_entity_id,
+            original_name=item.get("original_name", ""),
+            safe_name=safe_name,
+            file_size=item.get("file_size", 0),
+            content_type=item.get("content_type", "application/octet-stream"),
+            file_path=item.get("file_path", ""),
+            is_active=item.get("is_active", True),
+        )
+        db.add(db_item)
+        await db.flush()
+        existing_safe_names.add(safe_name)
+        fa_imported += 1
+    imported["file_attachments"] = fa_imported
+    skipped["file_attachments"] = fa_skipped
 
     await db.commit()
 

@@ -22,6 +22,7 @@ from app.models import (
     Relation,
     RelationType,
 )
+from app.models.file_attachment import FileAttachment
 
 router = APIRouter(prefix="/export", tags=["export"])
 
@@ -59,6 +60,7 @@ async def export_all(db: AsyncSession = Depends(get_db)):
         "entity_tags": await _fetch_all(db, EntityTag),
         "relation_types": await _fetch_all(db, RelationType),
         "relations": await _fetch_all(db, Relation),
+        "file_attachments": await _fetch_all(db, FileAttachment),
     }
 
     payload = {

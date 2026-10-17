@@ -44,7 +44,7 @@ export default function DecisionDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const filesMutateRef = useRef<(() => void) | null>(null);
 
-  const { data: entity, error, isLoading, mutate } = useSWR(`/decisions/${id}`, fetchAPI);
+  const { data: entity, error, isLoading, mutate } = useSWR<Record<string, unknown>>(`/decisions/${id}`, fetchAPI);
 
   const handleDelete = async () => {
     const ok = await confirm({

@@ -47,7 +47,7 @@ export default function ReviewDetailPage() {
   const { toast } = useToast();
   const filesMutateRef = useRef<(() => void) | null>(null);
 
-  const { data: entity, error, isLoading, mutate } = useSWR(`/reviews/${id}`, fetchAPI);
+  const { data: entity, error, isLoading, mutate } = useSWR<Record<string, unknown>>(`/reviews/${id}`, fetchAPI);
 
   const handleDelete = async () => {
     const ok = await confirm({

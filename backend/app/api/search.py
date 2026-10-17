@@ -1,5 +1,5 @@
 """Search API — 支持中文子串匹配、标签筛选和日期范围。"""
-from datetime import date
+from datetime import date, datetime, time, timedelta, timezone
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,49 +39,48 @@ async def search(
 ):
     results = []
 
-    # 如果有 tag_id，先获取关联的实体 ID
-    tag_entity_filter = None
-    if tag_id is not None:
-        tag_query = select(EntityTag.entity_type, EntityTag.entity_id).where(
-            EntityTag.tag_id == tag_id
-        )
-        tag_result = await db.execute(tag_query)
-        tag_entities = {(et.entity_type, et.entity_id) for et in tag_result.all()}
-        tag_entity_filter = tag_entities
+    # 前端传的是北京时间日期，转成带时区的 datetime 边界下推到 SQL 比较
+    # （DB 存 UTC timestamptz，直接比较 date 会差 8 小时导致边界数据丢失）
+    BEIJING_TZ = timezone(timedelta(hours=8))
+    start_dt = datetime.combine(start_date, time.min, tzinfo=BEIJING_TZ) if start_date else None
+    # end_date 取次日 0 点做开区间上界，避免漏掉当天 23:59:59 之前的记录
+    end_dt = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=BEIJING_TZ) if end_date else None
 
     for etype, model, search_fields in SEARCH_CONFIG:
         if entity_type and etype != entity_type:
             continue
 
+        conditions = []
         if q:
             # 有关键词：ILIKE 子串匹配
-            conditions = [field.ilike(f"%{q}%") for field in search_fields]
-            query = select(model).where(or_(*conditions)).limit(20)
-        else:
-            # 无关键词：返回全部
-            query = select(model).limit(20)
+            conditions.append(or_(*[field.ilike(f"%{q}%") for field in search_fields]))
+
+        # 日期/标签过滤必须下推到 SQL WHERE，在 LIMIT 之前生效，
+        # 否则先截断 20 条再内存过滤会丢掉范围内的数据
+        if start_dt:
+            conditions.append(model.created_at >= start_dt)
+        if end_dt:
+            conditions.append(model.created_at < end_dt)
+        if tag_id is not None:
+            conditions.append(
+                model.id.in_(
+                    select(EntityTag.entity_id).where(
+                        EntityTag.tag_id == tag_id,
+                        EntityTag.entity_type == etype,
+                    )
+                )
+            )
+
+        query = select(model)
+        if conditions:
+            query = query.where(*conditions)
+        # 最新优先，保证 limit 截断后返回的是最近的数据
+        query = query.order_by(model.created_at.desc()).limit(20)
 
         result = await db.execute(query)
         items = result.scalars().all()
 
         for item in items:
-            # 如果有标签筛选，检查实体是否在标签关联中
-            if tag_entity_filter is not None:
-                if (etype, item.id) not in tag_entity_filter:
-                    continue
-
-            # 日期范围筛选：用 created_at 过滤
-            if start_date or end_date:
-                created = getattr(item, "created_at", None)
-                if created is None:
-                    continue
-                # datetime → date
-                item_date = created.date() if hasattr(created, "date") else created
-                if start_date and item_date < start_date:
-                    continue
-                if end_date and item_date > end_date:
-                    continue
-
             # 获取创建时间
             created_at = None
             if hasattr(item, "created_at") and item.created_at:

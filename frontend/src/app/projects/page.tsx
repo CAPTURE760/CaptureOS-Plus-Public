@@ -22,7 +22,7 @@ interface PendingFile {
   type?: string;
 }
 
-interface Project {
+type Project = {
   id: number;
   title: string;
   description: string | null;

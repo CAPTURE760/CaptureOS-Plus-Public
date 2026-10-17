@@ -38,6 +38,6 @@ export async function fetchAPI<T>(path: string, options?: RequestInit): Promise<
 }
 
 export function useAPI<T>(path: string) {
-  const fetcher = (url: string) => fetchAPI(url);
+  const fetcher = (url: string) => fetchAPI<T>(url);
   return useSWR<T>(path, fetcher);
 }

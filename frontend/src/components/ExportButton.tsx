@@ -25,6 +25,7 @@ export default function ExportButton({ entityType, variant = 'small', className 
   const { toast } = useToast();
   const [exporting, setExporting] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [format, setFormat] = useState<'word' | 'json'>('word');
   const [selected, setSelected] = useState<Set<string>>(
     new Set(ENTITY_OPTIONS.map(e => e.key))
   );
@@ -51,23 +52,30 @@ export default function ExportButton({ entityType, variant = 'small', className 
     try {
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
       let url: string;
-      if (entityType) {
+      let filename: string;
+      const today = new Date().toISOString().slice(0, 10);
+
+      if (format === 'json') {
+        url = `${API_BASE}/export/`;
+        filename = `captureos-export-${today}.json`;
+      } else if (entityType) {
         url = `${API_BASE}/export/word/${entityType}`;
+        filename = `captureos-${entityType}-${today}.docx`;
       } else if (types && types.length > 0 && types.length < ENTITY_OPTIONS.length) {
         url = `${API_BASE}/export/word/?types=${types.join(',')}`;
+        filename = `captureos-export-${today}.docx`;
       } else {
         url = `${API_BASE}/export/word/`;
+        filename = `captureos-export-${today}.docx`;
       }
+
       const res = await fetch(url);
       if (!res.ok) throw new Error('导出失败');
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const today = new Date().toISOString().slice(0, 10);
       a.href = blobUrl;
-      a.download = entityType
-        ? `captureos-${entityType}-${today}.docx`
-        : `captureos-export-${today}.docx`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -119,12 +127,39 @@ export default function ExportButton({ entityType, variant = 'small', className 
           <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold mb-4">📄 选择导出内容</h3>
 
+            {/* 格式选择 */}
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden mb-4">
+              <button
+                onClick={() => setFormat('word')}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  format === 'word' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                📝 Word 报告
+              </button>
+              <button
+                onClick={() => setFormat('json')}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  format === 'json' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                💾 JSON 数据
+              </button>
+            </div>
+
+            {format === 'json' && (
+              <p className="text-xs text-gray-500 mb-4 bg-gray-50 rounded-lg px-3 py-2">
+                JSON 导出包含全部数据（含标签、关联、附件记录），可通过首页「导入数据」恢复。附件文件本体需另外备份 uploads 目录。
+              </p>
+            )}
+
             {/* 全选/全不选 */}
-            <label className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-gray-50 cursor-pointer mb-2 border-b border-gray-100">
+            <label className={`flex items-center gap-2 py-2 px-3 rounded-lg mb-2 border-b border-gray-100 ${format === 'json' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'}`}>
               <input
                 type="checkbox"
                 checked={selected.size === ENTITY_OPTIONS.length}
                 onChange={toggleAll}
+                disabled={format === 'json'}
                 className="w-4 h-4 rounded text-blue-600"
               />
               <span className="text-sm font-medium text-gray-700">
@@ -133,16 +168,17 @@ export default function ExportButton({ entityType, variant = 'small', className 
             </label>
 
             {/* 各模块选项 */}
-            <div className="space-y-1 mb-5">
+            <div className={`space-y-1 mb-5 ${format === 'json' ? 'opacity-50' : ''}`}>
               {ENTITY_OPTIONS.map(opt => (
                 <label
                   key={opt.key}
-                  className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  className={`flex items-center gap-2 py-2 px-3 rounded-lg ${format === 'json' ? 'cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'}`}
                 >
                   <input
                     type="checkbox"
                     checked={selected.has(opt.key)}
                     onChange={() => toggle(opt.key)}
+                    disabled={format === 'json'}
                     className="w-4 h-4 rounded text-blue-600"
                   />
                   <span className="text-sm text-gray-700">{opt.label}</span>
@@ -160,10 +196,10 @@ export default function ExportButton({ entityType, variant = 'small', className 
               </button>
               <button
                 onClick={() => doExport(Array.from(selected))}
-                disabled={selected.size === 0 || exporting}
+                disabled={(format === 'word' && selected.size === 0) || exporting}
                 className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {exporting ? '导出中...' : `导出 (${selected.size})`}
+                {exporting ? '导出中...' : format === 'json' ? '导出 JSON' : `导出 (${selected.size})`}
               </button>
             </div>
           </div>

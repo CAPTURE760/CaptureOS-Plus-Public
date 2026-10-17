@@ -53,7 +53,7 @@ export default function IssueDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const filesMutateRef = useRef<(() => void) | null>(null);
 
-  const { data: entity, error, isLoading, mutate } = useSWR(`/issues/${id}`, fetchAPI);
+  const { data: entity, error, isLoading, mutate } = useSWR<Record<string, unknown>>(`/issues/${id}`, fetchAPI);
 
   const handleDelete = async () => {
     const ok = await confirm({

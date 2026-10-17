@@ -22,7 +22,7 @@ interface PendingFile {
 }
 import { knowledgeStatusOptions, statusBgClass } from '@/lib/constants';
 
-interface Knowledge {
+type Knowledge = {
   id: number;
   title: string;
   content: string | null;
