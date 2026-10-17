@@ -1,5 +1,5 @@
 """Timeline API — 支持 7 种实体 + 链路聚合。"""
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
@@ -15,6 +15,9 @@ from app.models.project import Project
 from app.models.relation import Relation, RelationType
 from app.models.review import Review
 from app.models.solution import Solution
+
+# 北京时间（created_at 以 UTC 存储，展示/比较统一转上海时区）
+SHANGHAI_TZ = timezone(timedelta(hours=8))
 
 router = APIRouter(prefix="/timeline", tags=["timeline"])
 
@@ -82,16 +85,34 @@ def _sql_date_condition(model, date_field_name: str, start: date | None, end: da
     return or_(_sql_range_cond(biz_col, start, end), _sql_range_cond(created_date, start, end))
 
 
+async def _get_min_date(db: AsyncSession) -> str | None:
+    """全部数据的最早日期（业务日期与创建时间取更早者，统一为北京时间日期）。"""
+    min_dates: list[date] = []
+    for model, date_field_name, _etype in ENTITY_CONFIGS:
+        biz_min = (await db.execute(select(func.min(getattr(model, date_field_name))))).scalar_one()
+        created_min = (await db.execute(select(func.min(model.created_at)))).scalar_one()
+        # 统一归一化为 date：business 字段可能是 Date 也可能是 created_at（naive datetime，UTC 存储）
+        if created_min:
+            if created_min.tzinfo is None:
+                created_min = created_min.replace(tzinfo=timezone.utc)
+            min_dates.append(created_min.astimezone(SHANGHAI_TZ).date())
+        if biz_min:
+            min_dates.append(biz_min.date() if isinstance(biz_min, datetime) else biz_min)
+    return min(min_dates).isoformat() if min_dates else None
+
+
 @router.get("/")
 async def get_timeline(
     start_date: date | None = None,
     end_date: date | None = None,
     entity_type: str | None = None,
-    limit: int = Query(200, ge=1, le=500),
+    limit: int = Query(20, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     events = []
     total = 0
+    cumulative = 0  # 全局分页游标：已越过类型的累计条数
 
     for model, date_field_name, etype in ENTITY_CONFIGS:
         if entity_type and etype != entity_type:
@@ -108,10 +129,20 @@ async def get_timeline(
         type_total = (await db.execute(count_query)).scalar_one()
         total += type_total
 
+        # 全局分页：列表按（类型固定顺序 + 类型内时间倒序）排列，把全局切片
+        # [offset, offset+limit) 映射到该类型的子区间，保证任意页都是全局连续的 20 条
+        type_start = cumulative  # 该类型第一个元素在全局列表中的下标
+        cumulative += type_total
+        t_offset = max(0, offset - type_start)
+        t_limit = min(type_total, offset + limit - type_start) - t_offset
+        if t_limit <= 0:
+            continue
+
         query = select(model)
         if conditions:
             query = query.where(*conditions)
-        query = query.order_by(model.created_at.desc()).limit(limit)
+        # 最新优先；按映射后的区间取数
+        query = query.order_by(model.created_at.desc()).offset(t_offset).limit(t_limit)
         result = await db.execute(query)
         for item in result.scalars().all():
             d = _get_date(item, date_field_name)
@@ -133,7 +164,11 @@ async def get_timeline(
             events.append(entry)
 
     events.sort(key=lambda x: (x["entity_type"], x["datetime"] or x["date"] or "0000-01-01"), reverse=True)
-    return {"events": events, "total": total}
+    return {
+        "events": events,
+        "total": total,
+        "min_date": await _get_min_date(db),
+    }
 
 
 @router.get("/chains")
@@ -142,7 +177,7 @@ async def get_timeline_chains(
     end_date: date | None = None,
     limit: int = Query(200, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
     """链路聚合时间线。最多加载 limit 条记录。"""
     # 1. 收集实体（按创建时间倒序，只取最近 limit 条；日期条件下推 SQL）
     all_entities: dict[str, dict] = {}
@@ -239,4 +274,4 @@ async def get_timeline_chains(
         return ("zzz", c.get("date") or "0000-01-01")
 
     chains.sort(key=_chain_sort_key, reverse=True)
-    return chains
+    return {"chains": chains, "min_date": await _get_min_date(db)}

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { fetchAPI } from '@/lib/api';
 import Loading from '@/components/Loading';
+import Pagination from '@/components/Pagination';
 
 interface TimelineEvent {
   entity_type: string;
@@ -30,6 +31,12 @@ interface ChainEvent {
 interface FlatResponse {
   events: TimelineEvent[];
   total: number;
+  min_date?: string | null;
+}
+
+interface ChainsResponse {
+  chains: ChainEvent[];
+  min_date?: string | null;
 }
 
 const entityLabels: Record<string, string> = {
@@ -63,8 +70,6 @@ function TimelinePageInner() {
   const endDate = searchParams.get('end_date') || '';
   const entityType = searchParams.get('entity_type') || '';
   const viewMode = (searchParams.get('view') || 'chains') as 'flat' | 'chains';
-  // all=1 是"全部时间"的显式标记：无日期参数时也触发请求
-  const showAll = searchParams.get('all') === '1';
 
   // 侧边栏无参进入时：优先从 sessionStorage 恢复上次筛选状态，无历史则默认今天
   useEffect(() => {
@@ -95,31 +100,47 @@ function TimelinePageInner() {
     router.replace(qs ? `/timeline?${qs}` : '/timeline');
   };
 
-  // 加载更多：limit 递增重取，筛选条件变化时重置
-  const [limit, setLimit] = useState(200);
-  useEffect(() => { setLimit(200); }, [viewMode, entityType, startDate, endDate]);
+  // 列表视图分页（每页 20 条）；链路视图用加载更多（聚合链路无法安全分页）
+  const [page, setPage] = useState(1);
+  const [chainLimit, setChainLimit] = useState(200);
+  const [minDate, setMinDate] = useState<string | null>(null);
+  useEffect(() => { setPage(1); }, [viewMode, entityType, startDate, endDate]);
+  useEffect(() => { setChainLimit(200); }, [viewMode, startDate, endDate]);
 
   const params = new URLSearchParams();
   if (startDate) params.set('start_date', startDate);
   if (endDate) params.set('end_date', endDate);
-  if (viewMode === 'flat' && entityType) params.set('entity_type', entityType);
-  params.set('limit', String(limit));
+  if (viewMode === 'flat') {
+    if (entityType) params.set('entity_type', entityType);
+    params.set('limit', '20');
+    params.set('offset', String((page - 1) * 20));
+  } else {
+    params.set('limit', String(chainLimit));
+  }
   const baseUrl = viewMode === 'chains' ? '/timeline/chains' : '/timeline/';
   const url = `${baseUrl}?${params.toString()}`;
 
-  // 首次进入（无 URL 参数）默认查今天；有 all 标记或日期参数时按参数查
-  const shouldFetch = showAll || !!(startDate || endDate) || !searchParams.toString();
-  const { data, error, isLoading } = useSWR<ChainEvent[] | FlatResponse>(
+  // 首次进入（无 URL 参数）默认查今天；无日期参数视为查全部
+  const shouldFetch = !!(startDate || endDate) || !searchParams.toString();
+  const { data, error, isLoading } = useSWR<FlatResponse | ChainsResponse>(
     shouldFetch ? url : null,
     fetchAPI
   );
 
-  // flat 模式响应为 {events, total}；chains 为数组
-  const events = viewMode === 'flat' ? (data as FlatResponse)?.events ?? [] : (data as ChainEvent[]) ?? [];
+  // 记录数据最早日期，供"全部"快捷键填充明确日期范围（两种视图的响应都带 min_date）
+  useEffect(() => {
+    const md = viewMode === 'flat'
+      ? (data as FlatResponse)?.min_date
+      : (data as ChainsResponse)?.min_date;
+    if (md) setMinDate(md);
+  }, [data, viewMode]);
+
+  // flat 模式响应为 {events, total}；chains 为 {chains, min_date}
+  const events = viewMode === 'flat'
+    ? (data as FlatResponse)?.events ?? []
+    : (data as ChainsResponse)?.chains ?? [];
   const total = viewMode === 'flat' ? (data as FlatResponse)?.total ?? 0 : events.length;
-  const hasMore = viewMode === 'flat'
-    ? total > events.length
-    : events.length >= limit;
+  const hasMore = viewMode === 'chains' && events.length >= chainLimit;
 
   // 快捷按钮 active 判断
   const now = new Date();
@@ -153,26 +174,27 @@ function TimelinePageInner() {
         <div className="flex gap-4 items-end">
           {/* 快捷按钮 */}
           <div className="flex gap-1.5">
-            <QuickBtn label="今天" onClick={() => updateParams({ start_date: today, end_date: today, all: '' })}
+            <QuickBtn label="今天" onClick={() => updateParams({ start_date: today, end_date: today })}
               active={startDate === today && endDate === today} />
-            <QuickBtn label="本周" onClick={() => updateParams({ start_date: thisWeekStart, end_date: today, all: '' })}
+            <QuickBtn label="本周" onClick={() => updateParams({ start_date: thisWeekStart, end_date: today })}
               active={startDate === thisWeekStart && endDate === today} />
-            <QuickBtn label="本月" onClick={() => updateParams({ start_date: thisMonthStart, end_date: today, all: '' })}
+            <QuickBtn label="本月" onClick={() => updateParams({ start_date: thisMonthStart, end_date: today })}
               active={startDate === thisMonthStart && endDate === today} />
-            <QuickBtn label="全部" onClick={() => updateParams({ start_date: '', end_date: '', all: '1' })}
-              active={!startDate && !endDate} />
+            <QuickBtn label="全部"
+              onClick={() => updateParams({ start_date: minDate || '2020-01-01', end_date: today })}
+              active={startDate === (minDate || '2020-01-01') && endDate === today} />
           </div>
 
           <div>
             <label className="block text-xs text-gray-400 mb-1">开始</label>
             <input type="date" value={startDate}
-              onChange={(e) => updateParams({ start_date: e.target.value, all: '' })}
+              onChange={(e) => updateParams({ start_date: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
           </div>
           <div>
             <label className="block text-xs text-gray-400 mb-1">结束</label>
             <input type="date" value={endDate}
-              onChange={(e) => updateParams({ end_date: e.target.value, all: '' })}
+              onChange={(e) => updateParams({ end_date: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
           </div>
           {viewMode === 'flat' && (
@@ -211,17 +233,21 @@ function TimelinePageInner() {
                 ))
             }
           </div>
-          {hasMore && (
+          {viewMode === 'flat' ? (
+            // 列表视图：真实分页（每页 20 条，后端全局切片）
+            <div className="relative z-10 mt-4">
+              <Pagination page={page} total={total} pageSize={20} onPageChange={setPage} />
+            </div>
+          ) : hasMore ? (
+            // 链路视图：加载更多（链路聚合基于已加载实体，无法安全分页）
             <button
               type="button"
-              onClick={() => setLimit(l => l + 200)}
+              onClick={() => setChainLimit(l => l + 200)}
               className="relative z-10 mt-4 w-full py-2.5 text-sm text-blue-600 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 bg-white"
             >
-              {viewMode === 'flat'
-                ? `加载更多（已显示 ${events.length} / 共 ${total} 条）`
-                : `加载更多（当前 ${events.length} 条）`}
+              加载更多（当前 {events.length} 条）
             </button>
-          )}
+          ) : null}
         </div>
       )}
     </div>

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { fetchAPI } from '@/lib/api';
 import { formatBeijingTime } from '@/lib/time';
+import Pagination from '@/components/Pagination';
 
 interface Tag {
   id: number;
@@ -118,11 +119,11 @@ function SearchPageInner() {
   const showAll = searchParams.get('all') === '1';
   const hasConditions = !!(queryParam || entityFilter || tagFilter || startDate || endDate || showAll);
 
-  // 平铺视图（已选类型）的加载更多：limit 递增重取，切类型时重置
-  const [limit, setLimit] = useState(20);
-  useEffect(() => { setLimit(20); }, [entityFilter]);
+  // 单类型视图分页（每页 20 条），筛选变化时回到第 1 页
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [entityFilter, queryParam, tagFilter, startDate, endDate]);
   const { data, error, isLoading } = useSWR<SearchResponse>(
-    hasConditions ? `/search/?${searchParams.toString()}${entityFilter ? `&limit=${limit}` : ''}` : null,
+    hasConditions ? `/search/?${searchParams.toString()}${entityFilter ? `&limit=20&offset=${(page - 1) * 20}` : ''}` : null,
     fetchAPI
   );
 
@@ -219,20 +220,17 @@ function SearchPageInner() {
           {data.results.length === 0 ? (
             <div className="text-center py-8 text-gray-500">没有找到相关结果</div>
           ) : entityFilter ? (
-            // 已筛选类型：平铺展示
+            // 已筛选类型：平铺展示 + 分页
             <div className="space-y-2">
               {data.results.map((result) => (
                 <SearchResultItem key={`${result.entity_type}-${result.entity_id}`} result={result} query={data.query} />
               ))}
-              {(data.type_counts?.[entityFilter] ?? data.results.length) > data.results.length && (
-                <button
-                  type="button"
-                  onClick={() => setLimit(l => l + 50)}
-                  className="w-full py-2.5 text-sm text-blue-600 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  加载更多（已显示 {data.results.length} / 共 {data.type_counts?.[entityFilter]} 条）
-                </button>
-              )}
+              <Pagination
+                page={page}
+                total={data.type_counts?.[entityFilter] ?? 0}
+                pageSize={20}
+                onPageChange={setPage}
+              />
             </div>
           ) : (
             // 全局搜索：按类型分组展示

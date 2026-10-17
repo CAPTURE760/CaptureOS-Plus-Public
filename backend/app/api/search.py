@@ -36,6 +36,7 @@ async def search(
     start_date: date | None = None,
     end_date: date | None = None,
     limit: int = Query(20, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
     results = []
@@ -84,8 +85,8 @@ async def search(
         type_count = (await db.execute(count_query)).scalar_one()
         type_counts[etype] = type_count
         total += type_count
-        # 最新优先，保证 limit 截断后返回的是最近的数据
-        query = query.order_by(model.created_at.desc()).limit(limit)
+        # 最新优先；offset/limit 用于前端单类型分页（每页 20 条）
+        query = query.order_by(model.created_at.desc()).offset(offset).limit(limit)
 
         result = await db.execute(query)
         items = result.scalars().all()
