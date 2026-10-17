@@ -56,11 +56,13 @@ def _do_backup() -> None:
 
     logger.info("开始备份 → %s", BACKUP_DIR)
 
-    # 1. 数据库 SQL 备份（通过 docker exec 调用 db 容器的 pg_dump）
+    # 1. 数据库 SQL 备份（TCP 直连 db 容器，不依赖容器内的 docker CLI）
+    user, password, host, port, dbname = _parse_sync_db_url()
+    env = {**os.environ, "PGPASSWORD": password}
     with open(sql_path, "wb") as f:
         subprocess.run(
-            ["docker", "exec", "captureos-db-1", "pg_dump", "-U", "captureos", "-Fc", "captureos"],
-            stdout=f, check=True,
+            ["pg_dump", "-h", host, "-p", port, "-U", user, "-Fc", dbname],
+            stdout=f, env=env, check=True,
         )
     logger.info("  SQL 备份完成: %s", sql_path.name)
 
