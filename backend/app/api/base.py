@@ -1,6 +1,6 @@
 """Generic CRUD router factory."""
 import os
-from typing import Any, Generic, Sequence, Type, TypeVar
+from typing import Sequence, Type, TypeVar
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel

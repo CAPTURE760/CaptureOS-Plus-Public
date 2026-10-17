@@ -6,7 +6,6 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.database import async_session
 from app.models.decision import Decision
 from app.models.experience import Experience
 from app.models.issue import Issue

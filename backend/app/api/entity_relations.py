@@ -8,7 +8,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.relation import Relation, RelationType
+from app.models.relation import Relation
 
 
 # 实体类型 → 模型的懒加载映射（避免循环导入）

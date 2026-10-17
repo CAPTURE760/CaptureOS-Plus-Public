@@ -5,7 +5,6 @@ import hashlib
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, Depends, Form
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
 
 from app.api.deps import get_db
 from app.models import FileAttachment

@@ -1,5 +1,5 @@
 """数据导入 API — 从 JSON 文件导入数据，跳过重复项。"""
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends
