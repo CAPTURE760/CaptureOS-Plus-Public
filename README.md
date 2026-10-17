@@ -40,6 +40,18 @@ sidecar 用 `docker:24-cli` 镜像，挂载 docker socket 后直接 `docker exec
 
 **幂等设计**：同一天只备份一次。判断依据是备份目录里是否已存在当日文件，重复启动直接跳过，不影响启动速度。
 
+**保留策略**：自动保留最近 **14 天**。判断依据是文件修改时间（`mtime`），`-mtime +14` 匹配 15 天及以上，超期文件在下次备份时自动删除。
+
+#### Docker Desktop 手动启动时 backup 不触发
+
+sidecar 执行完就退出（`restart: "no"`），Docker Desktop 启动时只恢复"之前正在运行"的容器，**不会拉起已退出的 backup**。
+
+解决办法（三选一）：
+
+1. **推荐**：不用 Docker Desktop 启动，改用命令行 `docker compose up -d`
+2. 手动补一次：`docker compose up backup`
+3. 把 [docker-compose.yml:66](docker-compose.yml#L66) 的 `restart: "no"` 改成 `restart: unless-stopped`（代价：backup 会一直挂在后台，Docker Desktop 启动时会拉起它再跑一次）
+
 **备份内容**（每次两个文件）：
 
 - `captureos-YYYY-MM-DD.sql` — 数据库全量（pg_dump custom 格式）
@@ -108,7 +120,9 @@ wsl -d Ubuntu -- /home/oyweiyuan/CaptureOS/scripts/restore.sh 2026-10-17
 ## 常用命令
 
 ```bash
-docker compose up -d                    # 启动全栈
+docker compose up -d                    # 启动全栈（含自动备份）
+docker compose up backup                # 手动执行一次备份（幂等）
 docker compose logs -f backend          # 看后端日志（含备份日志）
 docker compose exec backend alembic upgrade head   # 数据库迁移
+docker logs captureos-backup-1          # 看备份执行日志
 ```
