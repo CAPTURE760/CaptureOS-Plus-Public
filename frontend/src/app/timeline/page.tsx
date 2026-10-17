@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { fetchAPI } from '@/lib/api';
 import Loading from '@/components/Loading';
@@ -27,6 +27,11 @@ interface ChainEvent {
   entity_count?: number;
 }
 
+interface FlatResponse {
+  events: TimelineEvent[];
+  total: number;
+}
+
 const entityLabels: Record<string, string> = {
   project: '项目', experience: '经验', issue: '问题',
   solution: '解决方案', knowledge: '知识', decision: '决策', review: '复盘',
@@ -45,28 +50,76 @@ const entityRoutes: Record<string, string> = {
 
 const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-export default function TimelinePage() {
+// sessionStorage key：侧边栏无参进入 /timeline 时从此恢复上次筛选状态
+const TIMELINE_STATE_KEY = 'captureos-timeline-params';
+
+function TimelinePageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const today = fmt(new Date());
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
-  const [entityType, setEntityType] = useState('');
-  const [viewMode, setViewMode] = useState<'flat' | 'chains'>('chains');
 
-  const queryParams = new URLSearchParams();
-  if (startDate) queryParams.set('start_date', startDate);
-  if (endDate) queryParams.set('end_date', endDate);
+  // URL 是筛选状态的唯一来源：跳详情再返回时状态随 URL 恢复
+  const startDate = searchParams.get('start_date') || '';
+  const endDate = searchParams.get('end_date') || '';
+  const entityType = searchParams.get('entity_type') || '';
+  const viewMode = (searchParams.get('view') || 'chains') as 'flat' | 'chains';
+  // all=1 是"全部时间"的显式标记：无日期参数时也触发请求
+  const showAll = searchParams.get('all') === '1';
 
-  const queryString = queryParams.toString();
+  // 侧边栏无参进入时：优先从 sessionStorage 恢复上次筛选状态，无历史则默认今天
+  useEffect(() => {
+    if (!searchParams.toString()) {
+      const saved = sessionStorage.getItem(TIMELINE_STATE_KEY);
+      if (saved) {
+        router.replace(`/timeline?${saved}`);
+      } else {
+        router.replace(`/timeline?start_date=${today}&end_date=${today}`);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 有参数时持久化到 sessionStorage
+  useEffect(() => {
+    const qs = searchParams.toString();
+    if (qs) sessionStorage.setItem(TIMELINE_STATE_KEY, qs);
+  }, [searchParams]);
+
+  const updateParams = (updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/timeline?${qs}` : '/timeline');
+  };
+
+  // 加载更多：limit 递增重取，筛选条件变化时重置
+  const [limit, setLimit] = useState(200);
+  useEffect(() => { setLimit(200); }, [viewMode, entityType, startDate, endDate]);
+
+  const params = new URLSearchParams();
+  if (startDate) params.set('start_date', startDate);
+  if (endDate) params.set('end_date', endDate);
+  if (viewMode === 'flat' && entityType) params.set('entity_type', entityType);
+  params.set('limit', String(limit));
   const baseUrl = viewMode === 'chains' ? '/timeline/chains' : '/timeline/';
-  const url = `${baseUrl}${queryString ? `?${queryString}` : ''}`;
+  const url = `${baseUrl}?${params.toString()}`;
 
-  const { data, error, isLoading } = useSWR<ChainEvent[] | TimelineEvent[]>(url, fetchAPI);
+  // 首次进入（无 URL 参数）默认查今天；有 all 标记或日期参数时按参数查
+  const shouldFetch = showAll || !!(startDate || endDate) || !searchParams.toString();
+  const { data, error, isLoading } = useSWR<ChainEvent[] | FlatResponse>(
+    shouldFetch ? url : null,
+    fetchAPI
+  );
 
-  // 如果是 flat 模式且有 entity_type 过滤，在前端过滤
-  const filteredData = viewMode === 'flat' && entityType
-    ? (data as TimelineEvent[])?.filter((e) => e.entity_type === entityType)
-    : data;
+  // flat 模式响应为 {events, total}；chains 为数组
+  const events = viewMode === 'flat' ? (data as FlatResponse)?.events ?? [] : (data as ChainEvent[]) ?? [];
+  const total = viewMode === 'flat' ? (data as FlatResponse)?.total ?? 0 : events.length;
+  const hasMore = viewMode === 'flat'
+    ? total > events.length
+    : events.length >= limit;
 
   // 快捷按钮 active 判断
   const now = new Date();
@@ -81,13 +134,13 @@ export default function TimelinePage() {
         <h1 className="text-2xl font-bold">时间线</h1>
         <div className="flex gap-2">
           <button
-            onClick={() => setViewMode('chains')}
+            onClick={() => updateParams({ view: 'chains' })}
             className={`px-3 py-1.5 rounded-lg text-sm ${viewMode === 'chains' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
           >
             🔗 链路视图
           </button>
           <button
-            onClick={() => setViewMode('flat')}
+            onClick={() => updateParams({ view: 'flat' })}
             className={`px-3 py-1.5 rounded-lg text-sm ${viewMode === 'flat' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
           >
             📋 列表视图
@@ -100,39 +153,38 @@ export default function TimelinePage() {
         <div className="flex gap-4 items-end">
           {/* 快捷按钮 */}
           <div className="flex gap-1.5">
-            <QuickBtn label="今天" onClick={() => { setStartDate(today); setEndDate(today); }}
+            <QuickBtn label="今天" onClick={() => updateParams({ start_date: today, end_date: today, all: '' })}
               active={startDate === today && endDate === today} />
-            <QuickBtn label="本周" onClick={() => { setStartDate(thisWeekStart); setEndDate(today); }}
+            <QuickBtn label="本周" onClick={() => updateParams({ start_date: thisWeekStart, end_date: today, all: '' })}
               active={startDate === thisWeekStart && endDate === today} />
-            <QuickBtn label="本月" onClick={() => { setStartDate(thisMonthStart); setEndDate(today); }}
+            <QuickBtn label="本月" onClick={() => updateParams({ start_date: thisMonthStart, end_date: today, all: '' })}
               active={startDate === thisMonthStart && endDate === today} />
-            <QuickBtn label="全部" onClick={() => { setStartDate(''); setEndDate(''); }}
+            <QuickBtn label="全部" onClick={() => updateParams({ start_date: '', end_date: '', all: '1' })}
               active={!startDate && !endDate} />
           </div>
 
           <div>
             <label className="block text-xs text-gray-400 mb-1">开始</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+            <input type="date" value={startDate}
+              onChange={(e) => updateParams({ start_date: e.target.value, all: '' })}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
           </div>
           <div>
             <label className="block text-xs text-gray-400 mb-1">结束</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+            <input type="date" value={endDate}
+              onChange={(e) => updateParams({ end_date: e.target.value, all: '' })}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
           </div>
           {viewMode === 'flat' && (
             <div>
               <label className="block text-xs text-gray-400 mb-1">类型</label>
-              <select value={entityType} onChange={(e) => setEntityType(e.target.value)}
+              <select value={entityType}
+                onChange={(e) => updateParams({ entity_type: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                 <option value="">全部</option>
-                <option value="project">项目</option>
-                <option value="experience">经验</option>
-                <option value="issue">问题</option>
-                <option value="solution">解决方案</option>
-                <option value="knowledge">知识</option>
-                <option value="decision">决策</option>
-                <option value="review">复盘</option>
+                {Object.entries(entityLabels).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
               </select>
             </div>
           )}
@@ -144,21 +196,32 @@ export default function TimelinePage() {
         <Loading />
       ) : error ? (
         <div className="text-center py-8 text-red-600">加载失败</div>
-      ) : !filteredData?.length ? (
+      ) : !events.length ? (
         <div className="text-center py-8 text-gray-500">暂无数据</div>
       ) : (
         <div className="relative">
           <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300" />
           <div className="space-y-4">
             {viewMode === 'chains'
-              ? (filteredData as ChainEvent[]).map((item, idx) => (
-                  <ChainItem key={idx} item={item} router={router} />
+              ? events.map((item, idx) => (
+                  <ChainItem key={idx} item={item as ChainEvent} router={router} />
                 ))
-              : (filteredData as TimelineEvent[]).map((event, idx) => (
+              : events.map((event, idx) => (
                   <FlatItem key={`${event.entity_type}-${event.entity_id}-${idx}`} event={event} router={router} />
                 ))
             }
           </div>
+          {hasMore && (
+            <button
+              type="button"
+              onClick={() => setLimit(l => l + 200)}
+              className="relative z-10 mt-4 w-full py-2.5 text-sm text-blue-600 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 bg-white"
+            >
+              {viewMode === 'flat'
+                ? `加载更多（已显示 ${events.length} / 共 ${total} 条）`
+                : `加载更多（当前 ${events.length} 条）`}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -262,5 +325,13 @@ function QuickBtn({ label, onClick, active }: { label: string; onClick: () => vo
     >
       {label}
     </button>
+  );
+}
+
+export default function TimelinePage() {
+  return (
+    <Suspense fallback={<div className="text-center py-8">加载中...</div>}>
+      <TimelinePageInner />
+    </Suspense>
   );
 }

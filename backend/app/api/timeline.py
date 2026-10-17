@@ -1,9 +1,9 @@
 """Timeline API — 支持 7 种实体 + 链路聚合。"""
-from datetime import date, timedelta
+from datetime import date
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import Date, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
@@ -64,15 +64,22 @@ def _get_datetime(item, date_field_name: str) -> str | None:
     return None
 
 
-def _in_range(d: date | None, start: date | None, end: date | None) -> bool:
-    """判断日期是否在范围内。d 为 None 时视为不在范围内。"""
-    if d is None:
-        return False
-    if start and d < start:
-        return False
-    if end and d > end:
-        return False
-    return True
+def _sql_range_cond(col, start: date | None, end: date | None):
+    """生成单列的日期范围 SQL 条件。"""
+    if start and end:
+        return col.between(start, end)
+    if start:
+        return col >= start
+    return col <= end
+
+
+def _sql_date_condition(model, date_field_name: str, start: date | None, end: date | None):
+    """构建"业务日期 OR 创建时间（北京时间）"任一在范围内的 SQL 条件，
+    与原 _in_range 内存过滤语义一致，但下推到 WHERE 在 LIMIT 之前生效。"""
+    biz_col = getattr(model, date_field_name)
+    # created_at 是 UTC timestamptz，转上海时区后取日期与前端传的北京日期对齐
+    created_date = cast(func.timezone("Asia/Shanghai", model.created_at), Date)
+    return or_(_sql_range_cond(biz_col, start, end), _sql_range_cond(created_date, start, end))
 
 
 @router.get("/")
@@ -80,23 +87,34 @@ async def get_timeline(
     start_date: date | None = None,
     end_date: date | None = None,
     entity_type: str | None = None,
-    limit: int = 200,
+    limit: int = Query(200, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
     events = []
+    total = 0
 
     for model, date_field_name, etype in ENTITY_CONFIGS:
         if entity_type and etype != entity_type:
             continue
 
-        query = select(model).order_by(model.created_at.desc()).limit(limit)
+        # 日期条件下推 SQL（业务日期 OR 北京时间创建日期），在 LIMIT 之前生效
+        conditions = []
+        if start_date or end_date:
+            conditions.append(_sql_date_condition(model, date_field_name, start_date, end_date))
+
+        count_query = select(func.count(model.id))
+        if conditions:
+            count_query = count_query.where(*conditions)
+        type_total = (await db.execute(count_query)).scalar_one()
+        total += type_total
+
+        query = select(model)
+        if conditions:
+            query = query.where(*conditions)
+        query = query.order_by(model.created_at.desc()).limit(limit)
         result = await db.execute(query)
         for item in result.scalars().all():
             d = _get_date(item, date_field_name)
-            created = _get_date(item, "created_at")
-            # 筛选：业务日期 OR 创建时间 任一在范围内就显示
-            if (start_date or end_date) and not _in_range(d, start_date, end_date) and not _in_range(created, start_date, end_date):
-                continue
 
             entry: dict[str, Any] = {
                 "entity_type": etype,
@@ -115,27 +133,27 @@ async def get_timeline(
             events.append(entry)
 
     events.sort(key=lambda x: (x["entity_type"], x["datetime"] or x["date"] or "0000-01-01"), reverse=True)
-    return events
+    return {"events": events, "total": total}
 
 
 @router.get("/chains")
 async def get_timeline_chains(
     start_date: date | None = None,
     end_date: date | None = None,
-    limit: int = 200,
+    limit: int = Query(200, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
 ) -> list[dict[str, Any]]:
     """链路聚合时间线。最多加载 limit 条记录。"""
-    # 1. 收集实体（按创建时间倒序，只取最近 limit 条）
+    # 1. 收集实体（按创建时间倒序，只取最近 limit 条；日期条件下推 SQL）
     all_entities: dict[str, dict] = {}
     for model, date_field_name, etype in ENTITY_CONFIGS:
-        query = select(model).order_by(model.created_at.desc()).limit(limit)
+        query = select(model)
+        if start_date or end_date:
+            query = query.where(_sql_date_condition(model, date_field_name, start_date, end_date))
+        query = query.order_by(model.created_at.desc()).limit(limit)
         result = await db.execute(query)
         for item in result.scalars().all():
             d = _get_date(item, date_field_name)
-            created = _get_date(item, "created_at")
-            if (start_date or end_date) and not _in_range(d, start_date, end_date) and not _in_range(created, start_date, end_date):
-                continue
             key = f"{etype}:{item.id}"
             all_entities[key] = {
                 "entity_type": etype,
