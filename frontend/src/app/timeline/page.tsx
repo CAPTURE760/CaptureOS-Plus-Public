@@ -203,10 +203,10 @@ function TimelinePageInner() {
           <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300" />
           <div className="space-y-4">
             {viewMode === 'chains'
-              ? events.map((item, idx) => (
-                  <ChainItem key={idx} item={item as ChainEvent} router={router} />
+              ? (events as ChainEvent[]).map((item, idx) => (
+                  <ChainItem key={idx} item={item} router={router} />
                 ))
-              : events.map((event, idx) => (
+              : (events as TimelineEvent[]).map((event, idx) => (
                   <FlatItem key={`${event.entity_type}-${event.entity_id}-${idx}`} event={event} router={router} />
                 ))
             }
