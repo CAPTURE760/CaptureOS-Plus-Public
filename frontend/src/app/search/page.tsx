@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { fetchAPI } from '@/lib/api';
 import { formatBeijingTime } from '@/lib/time';
+import { entityTypeLabels as entityLabels, entityTypeColors as entityColors, entityTypeRoutes as entityRoutes } from '@/lib/constants';
 import Pagination from '@/components/Pagination';
 import SkeletonList from '@/components/SkeletonList';
 
@@ -30,23 +31,6 @@ interface SearchResponse {
   type_counts?: Record<string, number>;
   min_date?: string | null;
 }
-
-const entityLabels: Record<string, string> = {
-  project: '项目', experience: '经验', issue: '问题',
-  solution: '解决方案', knowledge: '知识', decision: '决策', review: '复盘',
-};
-
-const entityColors: Record<string, string> = {
-  project: 'bg-blue-100 text-blue-800', experience: 'bg-yellow-100 text-yellow-800',
-  issue: 'bg-red-100 text-red-800', solution: 'bg-green-100 text-green-800',
-  knowledge: 'bg-purple-100 text-purple-800', decision: 'bg-indigo-100 text-indigo-800',
-  review: 'bg-pink-100 text-pink-800',
-};
-
-const entityRoutes: Record<string, string> = {
-  project: '/projects', experience: '/experiences', issue: '/issues',
-  solution: '/solutions', knowledge: '/knowledge', decision: '/decisions', review: '/reviews',
-};
 
 // sessionStorage key：侧边栏无参进入 /search 时从此恢复上次搜索状态
 const SEARCH_STATE_KEY = 'captureos-search-params';

@@ -1,16 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { fetchAPI } from '@/lib/api';
+import {
+  entityTypeLabels as entityLabels,
+  entityTypeColors as entityColors,
+  entityTypeRoutes as entityRoutes,
+} from '@/lib/constants';
 import BeijingTime from './BeijingTime';
 
 interface CountsData {
   issues: number;
   decisions: number;
   knowledge: number;
+}
+
+interface GlobalSearchResult {
+  entity_type: string;
+  entity_id: number;
+  title: string;
+  snippet: string;
+  created_at: string | null;
 }
 
 const menuItems = [
@@ -29,10 +42,84 @@ const menuItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const { data: counts } = useSWR<CountsData>('/dashboard/counts', fetchAPI, {
     refreshInterval: 60000,
   });
+
+  // ─── 全局搜索 ─────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<GlobalSearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // 输入防抖 300ms 后请求搜索接口
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    let ignore = false;
+    const timer = setTimeout(async () => {
+      try {
+        const data = await fetchAPI<{ results: GlobalSearchResult[] }>(
+          `/search/?q=${encodeURIComponent(q)}&limit=5`
+        );
+        if (!ignore) {
+          setSearchResults(data.results);
+          setSearchLoading(false);
+        }
+      } catch {
+        if (!ignore) setSearchLoading(false);
+      }
+    }, 300);
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
+
+  // 点击搜索框外部关闭下拉
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
+        setShowSearchDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Ctrl/Cmd+K 聚焦搜索框
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setShowSearchDropdown(true);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  const groupedSearchResults = searchResults.reduce((acc, r) => {
+    (acc[r.entity_type] = acc[r.entity_type] || []).push(r);
+    return acc;
+  }, {} as Record<string, GlobalSearchResult[]>);
+
+  const goFullSearch = () => {
+    const q = searchQuery.trim();
+    if (!q) return;
+    setShowSearchDropdown(false);
+    router.push(`/search?q=${encodeURIComponent(q)}`);
+  };
 
   const badges: Record<string, number> = {};
   if (counts) {
@@ -80,6 +167,68 @@ export default function Sidebar() {
         <div className="p-4 border-b border-gray-700">
           <h1 className="text-xl font-bold">CaptureOS</h1>
           <p className="text-sm text-gray-400">个人资产管理系统</p>
+        </div>
+
+        {/* 全局搜索 */}
+        <div ref={searchBoxRef} className="relative px-4 pt-3">
+          <div className="relative">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none">🔍</span>
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setShowSearchDropdown(true); }}
+              onFocus={() => setShowSearchDropdown(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') goFullSearch();
+                if (e.key === 'Escape') setShowSearchDropdown(false);
+              }}
+              placeholder="全局搜索（Ctrl+K）"
+              className="w-full bg-gray-800 text-white text-sm rounded-lg pl-8 pr-3 py-2 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {showSearchDropdown && searchQuery.trim() && (
+            <div className="absolute top-full left-4 right-4 mt-1 bg-white text-gray-900 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+              {searchLoading ? (
+                <div className="px-3 py-4 text-center text-sm text-gray-500">搜索中...</div>
+              ) : searchResults.length === 0 ? (
+                <div className="px-3 py-4 text-center text-sm text-gray-500">没有匹配结果</div>
+              ) : (
+                <>
+                  {Object.entries(groupedSearchResults).map(([type, items]) => (
+                    <div key={type} className="py-1">
+                      <div className="px-3 pt-1 pb-0.5">
+                        <span className={`px-1.5 py-0.5 rounded text-xs ${entityColors[type]}`}>
+                          {entityLabels[type]}
+                        </span>
+                      </div>
+                      {items.map((r) => (
+                        <button
+                          key={`${r.entity_type}-${r.entity_id}`}
+                          onClick={() => {
+                            setShowSearchDropdown(false);
+                            setSearchQuery('');
+                            router.push(`${entityRoutes[r.entity_type]}/${r.entity_id}`);
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 truncate"
+                          title={r.title}
+                        >
+                          {r.title}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                  <button
+                    onClick={goFullSearch}
+                    className="w-full text-center px-3 py-2.5 text-sm text-blue-600 hover:bg-gray-100 border-t border-gray-100"
+                  >
+                    查看全部搜索结果 →
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <BeijingTime />

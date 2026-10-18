@@ -133,3 +133,22 @@ export const solutionStatusOptions: StatusOption[] = [
   { value: 'adopted',    label: '已采用' },
   { value: 'deprecated', label: '已废弃' },
 ];
+
+// ─── 实体类型映射（搜索页 + 侧边栏全局搜索共用） ─────
+
+export const entityTypeLabels: Record<string, string> = {
+  project: '项目', experience: '经验', issue: '问题',
+  solution: '解决方案', knowledge: '知识', decision: '决策', review: '复盘',
+};
+
+export const entityTypeColors: Record<string, string> = {
+  project: 'bg-blue-100 text-blue-800', experience: 'bg-yellow-100 text-yellow-800',
+  issue: 'bg-red-100 text-red-800', solution: 'bg-green-100 text-green-800',
+  knowledge: 'bg-purple-100 text-purple-800', decision: 'bg-indigo-100 text-indigo-800',
+  review: 'bg-pink-100 text-pink-800',
+};
+
+export const entityTypeRoutes: Record<string, string> = {
+  project: '/projects', experience: '/experiences', issue: '/issues',
+  solution: '/solutions', knowledge: '/knowledge', decision: '/decisions', review: '/reviews',
+};
