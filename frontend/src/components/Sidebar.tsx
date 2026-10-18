@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { fetchAPI } from '@/lib/api';
 import {
+  statusBgClass,
   entityTypeLabels as entityLabels,
   entityTypeColors as entityColors,
   entityTypeRoutes as entityRoutes,
@@ -25,6 +26,34 @@ interface GlobalSearchResult {
   snippet: string;
   created_at: string | null;
 }
+
+interface ReminderItem {
+  entity_type: string;
+  entity_id: number;
+  title: string;
+  status: string;
+  priority: string | null;
+  created_at: string | null;
+}
+
+interface ReminderGroup {
+  type: string;
+  label: string;
+  count: number;
+  items: ReminderItem[];
+}
+
+interface RemindersData {
+  groups: ReminderGroup[];
+  total: number;
+}
+
+// 提醒条目状态中文标签
+const reminderStatusLabels: Record<string, string> = {
+  open: '待解决',
+  in_progress: '处理中',
+  active: '进行中',
+};
 
 const menuItems = [
   { href: '/', label: '仪表盘', icon: '📊' },
@@ -47,6 +76,13 @@ export default function Sidebar() {
   const { data: counts } = useSWR<CountsData>('/dashboard/counts', fetchAPI, {
     refreshInterval: 60000,
   });
+
+  // ─── 通知提醒 ─────────────────────────────────────
+  const { data: reminders } = useSWR<RemindersData>('/reminders/', fetchAPI, {
+    refreshInterval: 60000,
+  });
+  const [showReminders, setShowReminders] = useState(false);
+  const remindersRef = useRef<HTMLDivElement>(null);
 
   // ─── 全局搜索 ─────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
@@ -85,11 +121,14 @@ export default function Sidebar() {
     };
   }, [searchQuery]);
 
-  // 点击搜索框外部关闭下拉
+  // 点击搜索框/提醒面板外部关闭下拉
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
         setShowSearchDropdown(false);
+      }
+      if (remindersRef.current && !remindersRef.current.contains(e.target as Node)) {
+        setShowReminders(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -164,9 +203,63 @@ export default function Sidebar() {
         md:static md:translate-x-0
         ${open ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="p-4 border-b border-gray-700">
-          <h1 className="text-xl font-bold">CaptureOS</h1>
-          <p className="text-sm text-gray-400">个人资产管理系统</p>
+        <div className="p-4 border-b border-gray-700 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold">CaptureOS</h1>
+            <p className="text-sm text-gray-400">个人资产管理系统</p>
+          </div>
+
+          {/* 通知铃铛 */}
+          <div ref={remindersRef} className="relative shrink-0">
+            <button
+              onClick={() => setShowReminders(!showReminders)}
+              className="relative p-2 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+              aria-label="通知提醒"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {reminders && reminders.total > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center">
+                  {reminders.total > 99 ? '99+' : reminders.total}
+                </span>
+              )}
+            </button>
+
+            {showReminders && (
+              <div className="absolute right-0 top-full mt-1 w-72 bg-white text-gray-900 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+                {!reminders ? (
+                  <div className="px-3 py-4 text-center text-sm text-gray-500">加载中...</div>
+                ) : reminders.total === 0 ? (
+                  <div className="px-3 py-6 text-center text-sm text-gray-500">暂无待办提醒 🎉</div>
+                ) : (
+                  reminders.groups.filter((g) => g.count > 0).map((g) => (
+                    <div key={g.type} className="py-1">
+                      <div className="px-3 pt-1.5 pb-1 text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                        {g.label}
+                        <span className="bg-gray-100 text-gray-600 px-1.5 rounded-full">{g.count}</span>
+                      </div>
+                      {g.items.map((item) => (
+                        <button
+                          key={`${item.entity_type}-${item.entity_id}`}
+                          onClick={() => {
+                            setShowReminders(false);
+                            router.push(`/${g.type}/${item.entity_id}`);
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                        >
+                          <span className={`shrink-0 px-1.5 py-0.5 rounded text-xs ${statusBgClass[item.status] || 'bg-gray-100 text-gray-800'}`}>
+                            {reminderStatusLabels[item.status] || item.status}
+                          </span>
+                          <span className="truncate flex-1" title={item.title}>{item.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 全局搜索 */}

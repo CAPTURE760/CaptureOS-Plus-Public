@@ -12,6 +12,7 @@ from app.api.relations import router as relations_router
 from app.api.search import router as search_router
 from app.api.timeline import router as timeline_router
 from app.api.dashboard import router as dashboard_router
+from app.api.reminders import router as reminders_router
 from app.api.suggestions import router as suggestions_router
 from app.api.export import router as export_router
 from app.api.import_data import router as import_router
@@ -33,6 +34,7 @@ api_router.include_router(relations_router)
 api_router.include_router(search_router)
 api_router.include_router(timeline_router)
 api_router.include_router(dashboard_router)
+api_router.include_router(reminders_router)
 api_router.include_router(suggestions_router)
 api_router.include_router(export_router)
 api_router.include_router(import_router)
