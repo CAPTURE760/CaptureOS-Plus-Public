@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { fetchAPI } from '@/lib/api';
-import Loading from '@/components/Loading';
+import SkeletonList from '@/components/SkeletonList';
 import Pagination from '@/components/Pagination';
 
 interface TimelineEvent {
@@ -216,7 +216,7 @@ function TimelinePageInner() {
 
       {/* Timeline */}
       {isLoading ? (
-        <Loading />
+        <SkeletonList rows={6} />
       ) : error ? (
         <div className="text-center py-8 text-red-600">加载失败</div>
       ) : !events.length ? (

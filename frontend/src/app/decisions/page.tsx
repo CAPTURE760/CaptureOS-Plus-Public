@@ -10,7 +10,7 @@ import EntityList from '@/components/EntityList';
 import EntityForm from '@/components/EntityForm';
 import Pagination from '@/components/Pagination';
 import FilterBar from '@/components/FilterBar';
-import Loading from '@/components/Loading';
+import SkeletonList from '@/components/SkeletonList';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
 
@@ -273,7 +273,7 @@ export default function DecisionsPage() {
     toast('决策已删除', 'success');
   };
 
-  if (isLoading) return <Loading />;
+  if (isLoading) return <SkeletonList />;
   if (error) return <div className="text-center py-8 text-red-600">加载失败</div>;
 
   return (

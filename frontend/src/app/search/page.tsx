@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { fetchAPI } from '@/lib/api';
 import { formatBeijingTime } from '@/lib/time';
 import Pagination from '@/components/Pagination';
+import SkeletonList from '@/components/SkeletonList';
 
 interface Tag {
   id: number;
@@ -213,7 +214,7 @@ function SearchPageInner() {
 
       {/* Results */}
       {isLoading ? (
-        <div className="text-center py-8">搜索中...</div>
+        <SkeletonList rows={5} />
       ) : error ? (
         <div className="text-center py-8 text-red-600">搜索失败</div>
       ) : data ? (

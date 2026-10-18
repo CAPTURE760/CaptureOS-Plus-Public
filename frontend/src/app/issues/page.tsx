@@ -9,7 +9,7 @@ import EntityForm from '@/components/EntityForm';
 import Pagination from '@/components/Pagination';
 import FilterBar from '@/components/FilterBar';
 import ExportButton from '@/components/ExportButton';
-import Loading from '@/components/Loading';
+import SkeletonList from '@/components/SkeletonList';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
 import { issueStatusOptions, priorityOptions, statusBgClass, priorityBgClass } from '@/lib/constants';
@@ -259,7 +259,7 @@ export default function IssuesPage() {
     toast('问题已删除', 'success');
   };
 
-  if (isLoading) return <Loading />;
+  if (isLoading) return <SkeletonList />;
   if (error) return <div className="text-center py-8 text-red-600">加载失败</div>;
 
   return (
