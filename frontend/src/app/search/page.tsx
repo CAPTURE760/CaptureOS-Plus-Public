@@ -27,6 +27,7 @@ interface SearchResponse {
   results: SearchResult[];
   total: number;
   type_counts?: Record<string, number>;
+  min_date?: string | null;
 }
 
 const entityLabels: Record<string, string> = {
@@ -114,10 +115,12 @@ function SearchPageInner() {
   // 获取所有标签
   const { data: tags } = useSWR<Tag[]>('/tags/', fetchAPI);
 
-  // all=1 是"全部时间"的显式标记：无任何条件时 URL 也需要有参数才能触发请求，
-  // 否则点"全部时间"清空日期后 URL 无参数，页面会空白
-  const showAll = searchParams.get('all') === '1';
-  const hasConditions = !!(queryParam || entityFilter || tagFilter || startDate || endDate || showAll);
+  const hasConditions = !!(queryParam || entityFilter || tagFilter || startDate || endDate);
+
+  // 数据最早日期（供"全部时间"填充实际日期范围）：挂载即轻量获取
+  const { data: tlMeta } = useSWR<{ min_date?: string | null }>('/timeline/?limit=1', fetchAPI);
+  const minDate = tlMeta?.min_date || '2020-01-01';
+  const today = fmtDate(new Date());
 
   // 单类型视图分页（每页 20 条），筛选变化时回到第 1 页
   const [page, setPage] = useState(1);
@@ -131,11 +134,10 @@ function SearchPageInner() {
     e.preventDefault();
     const q = queryInput.trim();
     if (q) {
-      // 有关键词：清掉 all 标记（请求由 q 触发）
-      updateParams({ q, all: '' });
+      updateParams({ q });
     } else if (!entityFilter && !tagFilter && !startDate && !endDate) {
-      // 空关键词且无条件：等价"全部时间"
-      updateParams({ q: '', all: '1' });
+      // 空关键词且无条件：等价"全部时间"，直接填实际日期范围
+      updateParams({ q: '', start_date: minDate, end_date: today });
     } else {
       updateParams({ q: '' });
     }
@@ -190,21 +192,21 @@ function SearchPageInner() {
         <div className="flex gap-3 items-center text-sm">
           <div className="flex gap-1.5">
             <DateQuickBtn label="今天" startDate={startDate} endDate={endDate} preset="today"
-              onChange={(s, e) => updateParams({ start_date: s, end_date: e, all: '' })} />
+              onChange={(s, e) => updateParams({ start_date: s, end_date: e })} />
             <DateQuickBtn label="本周" startDate={startDate} endDate={endDate} preset="week"
-              onChange={(s, e) => updateParams({ start_date: s, end_date: e, all: '' })} />
+              onChange={(s, e) => updateParams({ start_date: s, end_date: e })} />
             <DateQuickBtn label="本月" startDate={startDate} endDate={endDate} preset="month"
-              onChange={(s, e) => updateParams({ start_date: s, end_date: e, all: '' })} />
-            <DateQuickBtn label="全部时间" startDate={startDate} endDate={endDate} preset="all"
-              onChange={(s, e) => updateParams({ start_date: s, end_date: e, all: '1' })} />
+              onChange={(s, e) => updateParams({ start_date: s, end_date: e })} />
+            <DateQuickBtn label="全部时间" startDate={startDate} endDate={endDate} preset="all" minDate={minDate}
+              onChange={(s, e) => updateParams({ start_date: s, end_date: e })} />
           </div>
           <span className="text-gray-400">|</span>
           <input type="date" value={startDate}
-            onChange={(e) => updateParams({ start_date: e.target.value, all: '' })}
+            onChange={(e) => updateParams({ start_date: e.target.value })}
             className="px-2 py-1.5 border border-gray-300 rounded text-sm" />
           <span className="text-gray-400">~</span>
           <input type="date" value={endDate}
-            onChange={(e) => updateParams({ end_date: e.target.value, all: '' })}
+            onChange={(e) => updateParams({ end_date: e.target.value })}
             className="px-2 py-1.5 border border-gray-300 rounded text-sm" />
         </div>
       </form>
@@ -297,9 +299,10 @@ function SearchResultItem({ result, query }: { result: SearchResult; query: stri
 
 const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-function DateQuickBtn({ label, startDate, endDate, preset, onChange }: {
+function DateQuickBtn({ label, startDate, endDate, preset, minDate = '2020-01-01', onChange }: {
   label: string; startDate: string; endDate: string;
   preset: 'today' | 'week' | 'month' | 'all';
+  minDate?: string;
   onChange: (start: string, end: string) => void;
 }) {
   const now = new Date();
@@ -309,7 +312,7 @@ function DateQuickBtn({ label, startDate, endDate, preset, onChange }: {
   const thisWeekStart = fmtDate(monday);
   const thisMonthStart = fmtDate(new Date(now.getFullYear(), now.getMonth(), 1));
 
-  const active = preset === 'all' ? !startDate && !endDate :
+  const active = preset === 'all' ? startDate === minDate && endDate === today :
     preset === 'today' ? startDate === today && endDate === today :
     preset === 'week' ? startDate === thisWeekStart && endDate === today :
     startDate === thisMonthStart && endDate === today;
@@ -318,7 +321,7 @@ function DateQuickBtn({ label, startDate, endDate, preset, onChange }: {
     if (preset === 'today') onChange(today, today);
     else if (preset === 'week') onChange(thisWeekStart, today);
     else if (preset === 'month') onChange(thisMonthStart, today);
-    else onChange('', '');
+    else onChange(minDate, today);
   };
 
   return (

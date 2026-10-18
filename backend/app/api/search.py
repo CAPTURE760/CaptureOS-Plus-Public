@@ -5,6 +5,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.api.timeline import _get_min_date
 from app.models.decision import Decision
 from app.models.experience import Experience
 from app.models.issue import Issue
@@ -110,6 +111,7 @@ async def search(
         "results": results,
         "total": total,
         "type_counts": type_counts,
+        "min_date": await _get_min_date(db),
     }
 
 

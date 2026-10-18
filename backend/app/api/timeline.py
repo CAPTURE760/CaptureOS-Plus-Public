@@ -175,17 +175,19 @@ async def get_timeline(
 async def get_timeline_chains(
     start_date: date | None = None,
     end_date: date | None = None,
-    limit: int = Query(200, ge=1, le=500),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    """链路聚合时间线。最多加载 limit 条记录。"""
+    """链路聚合时间线。范围内实体全量加载后按链分页（保证链不被拆散）。"""
     # 1. 收集实体（按创建时间倒序，只取最近 limit 条；日期条件下推 SQL）
     all_entities: dict[str, dict] = {}
     for model, date_field_name, etype in ENTITY_CONFIGS:
         query = select(model)
         if start_date or end_date:
             query = query.where(_sql_date_condition(model, date_field_name, start_date, end_date))
-        query = query.order_by(model.created_at.desc()).limit(limit)
+        # 全量加载：链路聚合依赖完整实体集合，limit 截断会产生残缺链
+        query = query.order_by(model.created_at.desc())
         result = await db.execute(query)
         for item in result.scalars().all():
             d = _get_date(item, date_field_name)
@@ -274,4 +276,10 @@ async def get_timeline_chains(
         return ("zzz", c.get("date") or "0000-01-01")
 
     chains.sort(key=_chain_sort_key, reverse=True)
-    return {"chains": chains, "min_date": await _get_min_date(db)}
+    # 按链分页（page/page_size），链本身不会被拆散
+    start_idx = (page - 1) * page_size
+    return {
+        "chains": chains[start_idx:start_idx + page_size],
+        "total": len(chains),
+        "min_date": await _get_min_date(db),
+    }

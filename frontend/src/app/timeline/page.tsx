@@ -36,6 +36,7 @@ interface FlatResponse {
 
 interface ChainsResponse {
   chains: ChainEvent[];
+  total: number;
   min_date?: string | null;
 }
 
@@ -100,12 +101,10 @@ function TimelinePageInner() {
     router.replace(qs ? `/timeline?${qs}` : '/timeline');
   };
 
-  // 列表视图分页（每页 20 条）；链路视图用加载更多（聚合链路无法安全分页）
+  // 两种视图都用真实分页（每页 20：列表按事件切，链路按链切）
   const [page, setPage] = useState(1);
-  const [chainLimit, setChainLimit] = useState(200);
   const [minDate, setMinDate] = useState<string | null>(null);
   useEffect(() => { setPage(1); }, [viewMode, entityType, startDate, endDate]);
-  useEffect(() => { setChainLimit(200); }, [viewMode, startDate, endDate]);
 
   const params = new URLSearchParams();
   if (startDate) params.set('start_date', startDate);
@@ -115,7 +114,8 @@ function TimelinePageInner() {
     params.set('limit', '20');
     params.set('offset', String((page - 1) * 20));
   } else {
-    params.set('limit', String(chainLimit));
+    params.set('page', String(page));
+    params.set('page_size', '20');
   }
   const baseUrl = viewMode === 'chains' ? '/timeline/chains' : '/timeline/';
   const url = `${baseUrl}?${params.toString()}`;
@@ -135,12 +135,13 @@ function TimelinePageInner() {
     if (md) setMinDate(md);
   }, [data, viewMode]);
 
-  // flat 模式响应为 {events, total}；chains 为 {chains, min_date}
+  // flat 模式响应为 {events, total}；chains 为 {chains, total, min_date}
   const events = viewMode === 'flat'
     ? (data as FlatResponse)?.events ?? []
     : (data as ChainsResponse)?.chains ?? [];
-  const total = viewMode === 'flat' ? (data as FlatResponse)?.total ?? 0 : events.length;
-  const hasMore = viewMode === 'chains' && events.length >= chainLimit;
+  const total = viewMode === 'flat'
+    ? (data as FlatResponse)?.total ?? 0
+    : (data as ChainsResponse)?.total ?? 0;
 
   // 快捷按钮 active 判断
   const now = new Date();
@@ -233,21 +234,10 @@ function TimelinePageInner() {
                 ))
             }
           </div>
-          {viewMode === 'flat' ? (
-            // 列表视图：真实分页（每页 20 条，后端全局切片）
-            <div className="relative z-10 mt-4">
-              <Pagination page={page} total={total} pageSize={20} onPageChange={setPage} />
-            </div>
-          ) : hasMore ? (
-            // 链路视图：加载更多（链路聚合基于已加载实体，无法安全分页）
-            <button
-              type="button"
-              onClick={() => setChainLimit(l => l + 200)}
-              className="relative z-10 mt-4 w-full py-2.5 text-sm text-blue-600 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 bg-white"
-            >
-              加载更多（当前 {events.length} 条）
-            </button>
-          ) : null}
+          {/* 两种视图：真实分页（每页 20；列表按事件、链路按链） */}
+          <div className="relative z-10 mt-4">
+            <Pagination page={page} total={total} pageSize={20} onPageChange={setPage} />
+          </div>
         </div>
       )}
     </div>
