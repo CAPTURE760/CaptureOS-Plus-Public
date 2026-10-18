@@ -44,7 +44,7 @@ function HighlightText({ text, query }: { text: string; query: string }) {
     <>
       {parts.map((part, i) =>
         regex.test(part) ? (
-          <mark key={i} className="bg-yellow-200 px-0.5 rounded">{part}</mark>
+          <mark key={i} className="bg-yellow-200 px-0.5 rounded dark:bg-yellow-500/40">{part}</mark>
         ) : (
           part
         )
@@ -140,19 +140,19 @@ function SearchPageInner() {
       <h1 className="text-2xl font-bold mb-6">搜索</h1>
 
       {/* Search Form */}
-      <form onSubmit={handleSearch} className="bg-white p-4 rounded-lg shadow mb-6">
+      <form onSubmit={handleSearch} className="bg-white p-4 rounded-lg shadow mb-6 dark:bg-gray-900">
         <div className="flex gap-3 mb-3">
           <input
             type="text"
             value={queryInput}
             onChange={(e) => setQueryInput(e.target.value)}
             placeholder="输入关键词，或直接选择类型/标签筛选"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600"
           />
           <select
             value={entityFilter}
             onChange={(e) => updateParams({ entity_type: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-gray-600"
           >
             <option value="">全部类型</option>
             {Object.entries(entityLabels).map(([key, label]) => (
@@ -162,7 +162,7 @@ function SearchPageInner() {
           <select
             value={tagFilter}
             onChange={(e) => updateParams({ tag_id: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-gray-600"
           >
             <option value="">全部标签</option>
             {tags?.map((tag) => (
@@ -185,14 +185,14 @@ function SearchPageInner() {
             <DateQuickBtn label="全部时间" startDate={startDate} endDate={endDate} preset="all" minDate={minDate}
               onChange={(s, e) => updateParams({ start_date: s, end_date: e })} />
           </div>
-          <span className="text-gray-400">|</span>
+          <span className="text-gray-400 dark:text-gray-500">|</span>
           <input type="date" value={startDate}
             onChange={(e) => updateParams({ start_date: e.target.value })}
-            className="px-2 py-1.5 border border-gray-300 rounded text-sm" />
-          <span className="text-gray-400">~</span>
+            className="px-2 py-1.5 border border-gray-300 rounded text-sm dark:border-gray-600" />
+          <span className="text-gray-400 dark:text-gray-500">~</span>
           <input type="date" value={endDate}
             onChange={(e) => updateParams({ end_date: e.target.value })}
-            className="px-2 py-1.5 border border-gray-300 rounded text-sm" />
+            className="px-2 py-1.5 border border-gray-300 rounded text-sm dark:border-gray-600" />
         </div>
       </form>
 
@@ -203,9 +203,9 @@ function SearchPageInner() {
         <div className="text-center py-8 text-red-600">搜索失败</div>
       ) : data ? (
         <div>
-          <p className="text-gray-500 mb-4">找到 {data.total} 个结果</p>
+          <p className="text-gray-500 mb-4 dark:text-gray-400">找到 {data.total} 个结果</p>
           {data.results.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">没有找到相关结果</div>
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">没有找到相关结果</div>
           ) : entityFilter ? (
             // 已筛选类型：平铺展示 + 分页
             <div className="space-y-2">
@@ -226,7 +226,7 @@ function SearchPageInner() {
                 const typeTotal = data.type_counts?.[type] ?? items.length;
                 return (
                 <div key={type}>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2 dark:text-gray-400">
                     <span className={`px-2 py-0.5 rounded text-xs ${entityColors[type]}`}>
                       {entityLabels[type]}
                     </span>
@@ -241,7 +241,7 @@ function SearchPageInner() {
                     <button
                       type="button"
                       onClick={() => updateParams({ entity_type: type })}
-                      className="mt-2 text-sm text-blue-600 hover:underline"
+                      className="mt-2 text-sm text-blue-600 hover:underline dark:text-blue-400"
                     >
                       还有 {typeTotal - items.length} 条，点击查看全部{entityLabels[type]} →
                     </button>
@@ -253,7 +253,7 @@ function SearchPageInner() {
           )}
         </div>
       ) : (
-        <div className="text-center py-8 text-gray-400">输入关键词或选择筛选条件开始搜索，点"全部时间"浏览全部记录</div>
+        <div className="text-center py-8 text-gray-400 dark:text-gray-500">输入关键词或选择筛选条件开始搜索，点"全部时间"浏览全部记录</div>
       )}
     </div>
   );
@@ -264,19 +264,19 @@ function SearchResultItem({ result, query }: { result: SearchResult; query: stri
   return (
     <div
       onClick={() => router.push(`${entityRoutes[result.entity_type]}/${result.entity_id}`)}
-      className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+      className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer dark:bg-gray-900"
     >
       <div className="flex items-center justify-between mb-1">
         <span className={`px-2 py-0.5 rounded text-xs ${entityColors[result.entity_type]}`}>
           {entityLabels[result.entity_type]}
         </span>
-        <span className="text-gray-500 text-xs whitespace-nowrap">
+        <span className="text-gray-500 text-xs whitespace-nowrap dark:text-gray-400">
           🕐 {formatBeijingTime(result.created_at)}
         </span>
       </div>
       <h3 className="font-medium mb-1"><HighlightText text={result.title} query={query} /></h3>
       {result.snippet && (
-        <p className="text-gray-600 text-sm"><HighlightText text={result.snippet} query={query} /></p>
+        <p className="text-gray-600 text-sm dark:text-gray-400"><HighlightText text={result.snippet} query={query} /></p>
       )}
     </div>
   );
@@ -312,7 +312,7 @@ function DateQuickBtn({ label, startDate, endDate, preset, minDate = '2020-01-01
   return (
     <button type="button" onClick={handleClick}
       className={`px-2.5 py-1 rounded text-xs border transition-colors ${
-        active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+        active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 dark:bg-gray-900 dark:text-gray-400 dark:border-gray-600'
       }`}>
       {label}
     </button>

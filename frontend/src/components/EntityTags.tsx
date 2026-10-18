@@ -34,7 +34,7 @@ export default function EntityTags({ entityType, entityId, onClick }: EntityTags
     return (
       <button
         onClick={onClick}
-        className="text-gray-400 hover:text-blue-500 text-xs border border-dashed border-gray-300 rounded px-2 py-1 hover:border-blue-500"
+        className="text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 text-xs border border-dashed border-gray-300 dark:border-gray-600 rounded px-2 py-1 hover:border-blue-500"
         title="点击打标签"
       >
         +标签

@@ -76,8 +76,8 @@ export default function ExperienceDetailPage() {
   };
 
   if (isLoading) return <Loading />;
-  if (error) return <div className="text-center py-8 text-red-600">加载失败</div>;
-  if (!entity) return <div className="text-center py-8 text-gray-500">未找到</div>;
+  if (error) return <div className="text-center py-8 text-red-600 dark:text-red-400">加载失败</div>;
+  if (!entity) return <div className="text-center py-8 text-gray-500 dark:text-gray-400">未找到</div>;
 
   return (
     <>

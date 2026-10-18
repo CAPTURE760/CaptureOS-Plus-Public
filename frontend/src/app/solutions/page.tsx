@@ -60,7 +60,7 @@ const columns = [
     render: (item: Solution) => {
       const statusLabel = solutionStatusOptions.find(s => s.value === item.status)?.label || item.status;
       return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBgClass[`solution.${item.status}`] || statusBgClass[item.status] || 'bg-gray-100 text-gray-800'}`}>
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBgClass[`solution.${item.status}`] || statusBgClass[item.status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
           {statusLabel}
         </span>
       );
@@ -89,7 +89,7 @@ const columns = [
     key: 'created_at',
     label: '创建时间',
     render: (item: Solution) => (
-      <span className="text-gray-500 text-xs whitespace-nowrap">
+      <span className="text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
         🕐 {formatBeijingTime(item.created_at)}
       </span>
     ),
@@ -258,14 +258,14 @@ export default function SolutionsPage() {
   };
 
   if (isLoading) return <SkeletonList />;
-  if (error) return <div className="text-center py-8 text-red-600">加载失败</div>;
+  if (error) return <div className="text-center py-8 text-red-600 dark:text-red-400">加载失败</div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">🔧 解决方案</h1>
-          <p className="text-sm text-gray-500 mt-1">共 {total} 个方案</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">共 {total} 个方案</p>
         </div>
         <ExportButton entityType="solutions" />
         <button

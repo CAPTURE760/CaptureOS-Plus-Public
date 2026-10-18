@@ -72,7 +72,7 @@ const columns = [
     key: 'status',
     label: '状态',
     render: (item: Knowledge) => (
-      <span className={`px-2 py-1 rounded text-xs ${statusBgClass[item.status] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded text-xs ${statusBgClass[item.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'}`}>
         {knowledgeStatusLabelMap[item.status] || item.status}
       </span>
     ),
@@ -82,7 +82,7 @@ const columns = [
     key: 'created_at',
     label: '创建时间',
     render: (item: Knowledge) => (
-      <span className="text-gray-500 text-xs whitespace-nowrap">
+      <span className="text-gray-500 text-xs whitespace-nowrap dark:text-gray-400">
         🕐 {formatBeijingTime(item.created_at)}
       </span>
     ),
@@ -272,7 +272,7 @@ export default function KnowledgePage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">📚 知识库</h1>
-          <p className="text-sm text-gray-500 mt-1">共 {total} 条知识</p>
+          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">共 {total} 条知识</p>
         </div>
         <ExportButton entityType="knowledge" />
         <button

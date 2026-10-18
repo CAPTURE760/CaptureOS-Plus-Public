@@ -48,7 +48,7 @@ const columns = [
     key: 'summary',
     label: '摘要',
     render: (item: Experience) => (
-      <span className="line-clamp-2 text-gray-600" title={item.summary || ''}>
+      <span className="line-clamp-2 text-gray-600 dark:text-gray-400" title={item.summary || ''}>
         {item.summary || '-'}
       </span>
     ),
@@ -58,7 +58,7 @@ const columns = [
     key: 'lesson',
     label: '教训',
     render: (item: Experience) => (
-      <span className="line-clamp-2 text-orange-600" title={item.lesson || ''}>
+      <span className="line-clamp-2 text-orange-600 dark:text-orange-400" title={item.lesson || ''}>
         {item.lesson || '-'}
       </span>
     ),
@@ -76,7 +76,7 @@ const columns = [
     key: 'created_at',
     label: '创建时间',
     render: (item: Experience) => (
-      <span className="text-gray-500 text-xs whitespace-nowrap">
+      <span className="text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
         🕐 {formatBeijingTime(item.created_at)}
       </span>
     ),
@@ -232,14 +232,14 @@ export default function ExperiencesPage() {
   };
 
   if (isLoading) return <SkeletonList />;
-  if (error) return <div className="text-center py-8 text-red-600">加载失败</div>;
+  if (error) return <div className="text-center py-8 text-red-600 dark:text-red-400">加载失败</div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">💡 经验管理</h1>
-          <p className="text-sm text-gray-500 mt-1">共 {total} 条经验</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">共 {total} 条经验</p>
         </div>
         <ExportButton entityType="experiences" />
         <button

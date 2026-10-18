@@ -141,11 +141,11 @@ export default function EntityForm({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg md:max-w-2xl mx-4 md:mx-0 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-lg md:max-w-2xl mx-4 md:mx-0 max-h-[90vh] overflow-hidden flex flex-col">
         {/* 标题栏 */}
-        <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
+        <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 dark:bg-gray-800">
           <h3 className="text-lg font-semibold">{title || '新建'}</h3>
-          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+          <button onClick={onCancel} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 text-2xl leading-none">×</button>
         </div>
 
         {/* 表单内容 */}
@@ -172,7 +172,7 @@ export default function EntityForm({
               <span>✅</span><span>{uploading ? '上传中...' : submitLabel}</span>
             </button>
             <button type="button" onClick={onCancel}
-              className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2">
+              className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-6 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
               <span>❌</span><span>{cancelLabel}</span>
             </button>
           </div>
@@ -205,7 +205,7 @@ function FormFields({
     <>
       {fields.map((field) => (
         <div key={field.name}>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {field.label}
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -235,7 +235,7 @@ function FormFields({
               value={(formData[field.name] as string) || ''}
               onChange={(e) => handleChange(field.name, e.target.value)}
               required={field.required}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">请选择</option>
               {field.options?.map((opt) => (
@@ -247,14 +247,14 @@ function FormFields({
               value={(formData[field.name] as string) || ''}
               onChange={(e) => handleChange(field.name, e.target.value)}
               required={field.required}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           ) : field.type === 'datetime-local' ? (
             <input type="datetime-local" name={field.name}
               value={(formData[field.name] as string) || ''}
               onChange={(e) => handleChange(field.name, e.target.value)}
               required={field.required}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           ) : field.type === 'number' ? (
             <input type="number" name={field.name}
@@ -263,14 +263,14 @@ function FormFields({
               required={field.required}
               min={field.min}
               max={field.max}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           ) : (
             <input type="text" name={field.name}
               value={(formData[field.name] as string) || ''}
               onChange={(e) => handleChange(field.name, e.target.value)}
               required={field.required}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder={`请输入${field.label}...`}
             />
           )}
@@ -294,14 +294,14 @@ function MarkdownField({
   const [preview, setPreview] = useState(false);
 
   return (
-    <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+    <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
       {/* 切换按钮栏 */}
-      <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 border-b border-gray-200">
+      <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <button
           type="button"
           onClick={() => setPreview(false)}
           className={`px-2 py-0.5 text-xs rounded transition-colors ${
-            !preview ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-500 hover:text-gray-700'
+            !preview ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           编辑
@@ -310,19 +310,19 @@ function MarkdownField({
           type="button"
           onClick={() => setPreview(true)}
           className={`px-2 py-0.5 text-xs rounded transition-colors ${
-            preview ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-500 hover:text-gray-700'
+            preview ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           预览
         </button>
-        <span className="ml-auto text-[10px] text-gray-400">支持 Markdown</span>
+        <span className="ml-auto text-[10px] text-gray-400 dark:text-gray-500">支持 Markdown</span>
       </div>
 
       {/* 编辑/预览内容 */}
       {preview ? (
         <div
-          className="px-3 py-2 min-h-[80px] bg-white prose prose-sm max-w-none text-sm"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(value) || '<span class="text-gray-400">暂无内容</span>' }}
+          className="px-3 py-2 min-h-[80px] bg-white dark:bg-gray-900 prose prose-sm max-w-none text-sm"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(value) || '<span class="text-gray-400 dark:text-gray-500">暂无内容</span>' }}
         />
       ) : (
         <textarea
@@ -440,21 +440,21 @@ function AttachmentsField({
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       {/* 待上传的文件列表 */}
       {pendingFiles.length > 0 && (
         <div className="px-3 py-2 space-y-1">
           {pendingFiles.map((file, index) => (
-            <div key={index} className="flex items-center gap-2 text-sm bg-gray-50 rounded px-2 py-1.5">
+            <div key={index} className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-gray-800 rounded px-2 py-1.5">
               <span className="text-base">{getFileIcon(file.type, file.name)}</span>
-              <span className="flex-1 truncate text-gray-800">
+              <span className="flex-1 truncate text-gray-800 dark:text-gray-200">
                 {file.name}
               </span>
-              <span className="text-xs text-gray-400 whitespace-nowrap">{formatSize(file.size)}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatSize(file.size)}</span>
               <button
                 type="button"
                 onClick={() => onRemovePendingFile(index)}
-                className="text-gray-400 hover:text-red-500 text-xs px-1"
+                className="text-gray-400 dark:text-gray-500 hover:text-red-500 text-xs px-1"
                 title="移除"
               >
                 ×
@@ -465,7 +465,7 @@ function AttachmentsField({
       )}
 
       {/* 上传按钮 */}
-      <div className="border-t border-gray-100 px-3 py-2">
+      <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-2">
         <input
           ref={fileInputRef}
           type="file"
@@ -478,7 +478,7 @@ function AttachmentsField({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading || instantUploading}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded transition-colors"
         >
           {uploading || instantUploading ? (
             <>

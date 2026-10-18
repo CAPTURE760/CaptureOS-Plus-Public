@@ -157,13 +157,13 @@ function TimelinePageInner() {
         <div className="flex gap-2">
           <button
             onClick={() => updateParams({ view: 'chains' })}
-            className={`px-3 py-1.5 rounded-lg text-sm ${viewMode === 'chains' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            className={`px-3 py-1.5 rounded-lg text-sm ${viewMode === 'chains' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}
           >
             🔗 链路视图
           </button>
           <button
             onClick={() => updateParams({ view: 'flat' })}
-            className={`px-3 py-1.5 rounded-lg text-sm ${viewMode === 'flat' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            className={`px-3 py-1.5 rounded-lg text-sm ${viewMode === 'flat' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}
           >
             📋 列表视图
           </button>
@@ -171,7 +171,7 @@ function TimelinePageInner() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
+      <div className="bg-white p-4 rounded-lg shadow mb-6 dark:bg-gray-900">
         <div className="flex gap-4 items-end">
           {/* 快捷按钮 */}
           <div className="flex gap-1.5">
@@ -187,23 +187,23 @@ function TimelinePageInner() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-400 mb-1">开始</label>
+            <label className="block text-xs text-gray-400 mb-1 dark:text-gray-500">开始</label>
             <input type="date" value={startDate}
               onChange={(e) => updateParams({ start_date: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-gray-600" />
           </div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">结束</label>
+            <label className="block text-xs text-gray-400 mb-1 dark:text-gray-500">结束</label>
             <input type="date" value={endDate}
               onChange={(e) => updateParams({ end_date: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-gray-600" />
           </div>
           {viewMode === 'flat' && (
             <div>
-              <label className="block text-xs text-gray-400 mb-1">类型</label>
+              <label className="block text-xs text-gray-400 mb-1 dark:text-gray-500">类型</label>
               <select value={entityType}
                 onChange={(e) => updateParams({ entity_type: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-gray-600">
                 <option value="">全部</option>
                 {Object.entries(entityLabels).map(([key, label]) => (
                   <option key={key} value={key}>{label}</option>
@@ -220,7 +220,7 @@ function TimelinePageInner() {
       ) : error ? (
         <div className="text-center py-8 text-red-600">加载失败</div>
       ) : !events.length ? (
-        <div className="text-center py-8 text-gray-500">暂无数据</div>
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">暂无数据</div>
       ) : (
         <div className="relative">
           <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300" />
@@ -250,17 +250,17 @@ function FlatItem({ event, router }: { event: TimelineEvent; router: ReturnType<
       <div className={`w-4 h-4 rounded-full ${entityColors[event.entity_type]} mt-1.5 z-10`} />
       <div
         onClick={() => router.push(`${entityRoutes[event.entity_type]}/${event.entity_id}`)}
-        className="bg-white p-4 rounded-lg shadow flex-1 cursor-pointer hover:shadow-md transition-shadow"
+        className="bg-white p-4 rounded-lg shadow flex-1 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-900"
       >
         <div className="flex items-center gap-2 mb-1">
           <span className={`px-2 py-0.5 rounded text-xs text-white ${entityColors[event.entity_type]}`}>
             {entityLabels[event.entity_type]}
           </span>
-          {event.status && <span className="text-xs text-gray-500">{event.status}</span>}
+          {event.status && <span className="text-xs text-gray-500 dark:text-gray-400">{event.status}</span>}
           {event.rating && <span className="text-xs">{'⭐'.repeat(event.rating)}</span>}
         </div>
         <h3 className="font-medium">{event.title}</h3>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           {event.datetime
             ? new Date(event.datetime).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
             : event.date
@@ -286,16 +286,16 @@ function ChainItem({ item, router }: { item: ChainEvent; router: ReturnType<type
       <div className={`w-4 h-4 rounded-full ${entityColors[primaryType]} mt-1.5 z-10 ring-2 ring-white`} />
       <div
         onClick={() => setExpanded(!expanded)}
-        className="bg-white p-4 rounded-lg shadow flex-1 border-l-4 border-blue-400 cursor-pointer hover:shadow-md transition-shadow"
+        className="bg-white p-4 rounded-lg shadow flex-1 border-l-4 border-blue-400 cursor-pointer hover:shadow-md transition-shadow dark:bg-gray-900"
       >
         <div className="flex items-center gap-2 mb-1">
-          <span className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800 font-medium">
+          <span className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800 font-medium dark:bg-blue-900/40 dark:text-blue-200">
             🔗 链路 ({item.entity_count}步)
           </span>
-          <span className="text-xs text-gray-400">{expanded ? '▲ 收起' : '▼ 点击展开'}</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">{expanded ? '▲ 收起' : '▼ 点击展开'}</span>
         </div>
         <h3 className="font-medium">{item.title}</h3>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           {item.datetime
             ? new Date(item.datetime).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
             : item.date
@@ -308,14 +308,14 @@ function ChainItem({ item, router }: { item: ChainEvent; router: ReturnType<type
             {item.entities.map((e, i) => (
               <div key={i}
                 onClick={(ev) => { ev.stopPropagation(); router.push(`${entityRoutes[e.entity_type]}/${e.entity_id}`); }}
-                className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 rounded px-2 py-1"
+                className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 rounded px-2 py-1 dark:hover:bg-gray-800"
               >
                 <span className={`w-2 h-2 rounded-full ${entityColors[e.entity_type]}`} />
                 <span className={`px-1.5 py-0.5 rounded text-xs text-white ${entityColors[e.entity_type]}`}>
                   {entityLabels[e.entity_type]}
                 </span>
                 <span className="flex-1">{e.title}</span>
-                <span className="text-xs text-gray-400 shrink-0">
+                <span className="text-xs text-gray-400 shrink-0 dark:text-gray-500">
                   {e.datetime
                     ? new Date(e.datetime).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
                     : '-'}
@@ -336,7 +336,7 @@ function QuickBtn({ label, onClick, active }: { label: string; onClick: () => vo
       className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
         active
           ? 'bg-blue-600 text-white border-blue-600'
-          : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600'
+          : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600 dark:bg-gray-900 dark:text-gray-400 dark:border-gray-600 dark:hover:text-blue-300'
       }`}
     >
       {label}

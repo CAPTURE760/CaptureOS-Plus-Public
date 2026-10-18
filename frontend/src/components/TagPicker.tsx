@@ -121,17 +121,17 @@ export default function TagPicker({ entityType, entityId, onClose, onUpdated }: 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 md:mx-0 max-h-[80vh] overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-sm mx-4 md:mx-0 max-h-[80vh] overflow-hidden">
         {/* 头部 */}
-        <div className="px-4 py-3 border-b flex justify-between items-center bg-gray-50">
+        <div className="px-4 py-3 border-b flex justify-between items-center bg-gray-50 dark:bg-gray-800">
           <h3 className="font-semibold">🏷️ 管理标签</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-xl">×</button>
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xl">×</button>
         </div>
 
         <div className="p-4">
           {/* 已打标签 */}
           <div className="mb-4">
-            <h4 className="text-sm font-medium text-gray-500 mb-2">已打标签</h4>
+            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">已打标签</h4>
             {assignedTags.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {currentEntityTags.map((et) => {
@@ -148,13 +148,13 @@ export default function TagPicker({ entityType, entityId, onClose, onUpdated }: 
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-400">暂无标签</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">暂无标签</p>
             )}
           </div>
 
           {/* 添加标签 */}
           <div className="border-t pt-4">
-            <h4 className="text-sm font-medium text-gray-500 mb-2">添加标签</h4>
+            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">添加标签</h4>
             <div className="flex gap-2">
               <select
                 value={selectedTagId}
@@ -180,10 +180,10 @@ export default function TagPicker({ entityType, entityId, onClose, onUpdated }: 
         </div>
 
         {/* 底部 */}
-        <div className="px-4 py-3 border-t bg-gray-50 flex justify-end">
+        <div className="px-4 py-3 border-t bg-gray-50 dark:bg-gray-800 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
           >
             完成
           </button>

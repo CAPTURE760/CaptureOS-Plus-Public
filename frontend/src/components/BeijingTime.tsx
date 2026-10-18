@@ -29,11 +29,11 @@ export default function BeijingTime() {
 
   return (
     <div className="text-center py-3 border-b border-gray-700">
-      <div className="text-xs text-gray-400 mb-1">北京时间</div>
+      <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">北京时间</div>
       <div ref={timeRef} className="text-xl font-mono font-bold text-green-400 tracking-wider">
         --:--:--
       </div>
-      <div ref={dateRef} className="text-xs text-gray-400 mt-1">
+      <div ref={dateRef} className="text-xs text-gray-400 dark:text-gray-500 mt-1">
         ----/--/-- ---
       </div>
     </div>

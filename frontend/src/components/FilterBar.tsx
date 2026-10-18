@@ -18,7 +18,7 @@ interface FilterBarProps {
   totalCount?: number;
 }
 
-const defaultChipColor = { active: 'bg-blue-600 text-white border-blue-600', idle: 'border-gray-300 text-gray-600 hover:bg-gray-50' };
+const defaultChipColor = { active: 'bg-blue-600 text-white border-blue-600', idle: 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' };
 
 function Chip({ label, active, colorSet, onClick }: {
   label: string;
@@ -58,7 +58,7 @@ export default function FilterBar({
     <div className="flex flex-wrap items-center gap-3 mb-4 px-1">
       {hasStatus && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 font-medium shrink-0">状态：</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium shrink-0">状态：</span>
           <div className="flex flex-wrap gap-1.5">
             {statusFilters.map((f) => (
               <Chip
@@ -73,11 +73,11 @@ export default function FilterBar({
         </div>
       )}
 
-      {hasStatus && hasPriority && <div className="w-px h-5 bg-gray-200" />}
+      {hasStatus && hasPriority && <div className="w-px h-5 bg-gray-200 dark:bg-gray-700" />}
 
       {hasPriority && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 font-medium shrink-0">优先级：</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium shrink-0">优先级：</span>
           <div className="flex flex-wrap gap-1.5">
             {priorityFilters.map((f) => (
               <Chip
@@ -94,8 +94,8 @@ export default function FilterBar({
 
       {isFiltering && filteredCount != null && totalCount != null && (
         <>
-          <div className="w-px h-5 bg-gray-200" />
-          <span className="text-xs text-blue-600 font-medium shrink-0">
+          <div className="w-px h-5 bg-gray-200 dark:bg-gray-700" />
+          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium shrink-0">
             筛选结果：{filteredCount} / {totalCount} 条
           </span>
         </>

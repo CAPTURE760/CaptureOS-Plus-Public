@@ -153,9 +153,9 @@ export default function EntityList<T extends { id: number }>({
   return (
     <div>
       {/* 电脑端表格 */}
-      <div className="hidden md:block overflow-x-auto bg-white rounded-lg shadow">
+      <div className="hidden md:block overflow-x-auto bg-white dark:bg-gray-900 rounded-lg shadow">
         <table className="min-w-full">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-gray-50 dark:bg-gray-800 border-b">
             <tr>
               {hasBatchActions && (
                 <th className="px-4 py-3 w-10">
@@ -163,37 +163,37 @@ export default function EntityList<T extends { id: number }>({
                     type="checkbox"
                     checked={allSelected}
                     onChange={onSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
                   />
                 </th>
               )}
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-4 py-3 text-left text-sm font-medium text-gray-700"
+                  className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300"
                   style={col.width ? { width: col.width } : undefined}
                 >
                   {col.label}
                 </th>
               ))}
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 min-w-[120px]">
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[120px]">
                 标签
               </th>
               {(onEdit || onDelete || onView) && (
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 w-24">
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300 w-24">
                   操作
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {data.map((item) => {
               const itemTags = getEntityTags(item.id);
               return (
                 <tr key={item.id}
                   className={`transition-colors ${
-                    selectedIds?.has(item.id) ? 'bg-blue-50' :
-                    onView ? 'hover:bg-blue-50 cursor-pointer' : 'hover:bg-gray-50'
+                    selectedIds?.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/40' :
+                    onView ? 'hover:bg-blue-50 dark:hover:bg-blue-900/40 cursor-pointer' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                   onClick={() => onView?.(item)}
                 >
@@ -203,12 +203,12 @@ export default function EntityList<T extends { id: number }>({
                         type="checkbox"
                         checked={selectedIds?.has(item.id) || false}
                         onChange={() => onSelect?.(item.id)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
                       />
                     </td>
                   )}
                   {columns.map((col) => (
-                    <td key={col.key} className="px-4 py-3 text-sm text-gray-700 max-w-xs">
+                    <td key={col.key} className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs">
                       {col.render ? (
                         col.render(item)
                       ) : (
@@ -228,7 +228,7 @@ export default function EntityList<T extends { id: number }>({
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); setTagPickerItem(item); }}
-                        className="text-gray-400 hover:text-blue-500 text-xs border border-dashed border-gray-300 rounded px-1.5 py-0.5 hover:border-blue-500 shrink-0"
+                        className="text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 text-xs border border-dashed border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 hover:border-blue-500 shrink-0"
                         title="打标签"
                       >
                         +
@@ -241,7 +241,7 @@ export default function EntityList<T extends { id: number }>({
                       {onView && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onView(item); }}
-                          className="text-green-600 hover:text-green-800"
+                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
                         >
                           查看
                         </button>
@@ -249,7 +249,7 @@ export default function EntityList<T extends { id: number }>({
                       {onEdit && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onEdit(item); }}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                         >
                           编辑
                         </button>
@@ -257,7 +257,7 @@ export default function EntityList<T extends { id: number }>({
                       {onDelete && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onDelete(item); }}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                         >
                           删除
                         </button>
@@ -271,7 +271,7 @@ export default function EntityList<T extends { id: number }>({
               <tr>
                 <td
                   colSpan={columns.length + (hasBatchActions ? 3 : 2)}
-                  className="px-4 py-12 text-center text-gray-500"
+                  className="px-4 py-12 text-center text-gray-500 dark:text-gray-400"
                 >
                   <div className="flex flex-col items-center">
                     <span className="text-4xl mb-2">📭</span>
@@ -292,9 +292,9 @@ export default function EntityList<T extends { id: number }>({
               type="checkbox"
               checked={allSelected}
               onChange={onSelectAll}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
             />
-            <span className="text-sm text-gray-500">全选</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">全选</span>
           </div>
         )}
         {data.map((item) => {
@@ -302,7 +302,7 @@ export default function EntityList<T extends { id: number }>({
           return (
             <div
               key={item.id}
-              className={`bg-white rounded-lg shadow p-4 ${
+              className={`bg-white dark:bg-gray-900 rounded-lg shadow p-4 ${
                 selectedIds?.has(item.id) ? 'ring-2 ring-blue-500' : ''
               }`}
             >
@@ -312,45 +312,45 @@ export default function EntityList<T extends { id: number }>({
                     type="checkbox"
                     checked={selectedIds?.has(item.id) || false}
                     onChange={() => onSelect?.(item.id)}
-                    className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="mt-1 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
                   />
                 )}
                 <div className="flex-1 min-w-0" onClick={() => onView?.(item)}>
-                  <div className="font-medium text-gray-900 truncate">
+                  <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
                     {String((item as Record<string, unknown>)[columns[0]?.key] ?? '-')}
                   </div>
                   {(mobileKeys
                     ? columns.filter(c => mobileKeys.includes(c.key))
                     : columns.slice(1, Math.min(3, columns.length - 1))
                   ).map((col) => (
-                    <div key={col.key} className="text-sm text-gray-500 mt-1 truncate">
-                      <span className="text-gray-400">{col.label}：</span>
+                    <div key={col.key} className="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
+                      <span className="text-gray-400 dark:text-gray-500">{col.label}：</span>
                       {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? '-')}
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
                 <div className="flex flex-wrap gap-1">
                   {itemTags.map((tag) => (
                     <TagBadge key={tag.id} tag={tag} />
                   ))}
                   <button
                     onClick={(e) => { e.stopPropagation(); setTagPickerItem(item); }}
-                    className="text-gray-400 hover:text-blue-500 text-xs border border-dashed border-gray-300 rounded px-1.5 py-0.5"
+                    className="text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 text-xs border border-dashed border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5"
                   >
                     +
                   </button>
                 </div>
                 <div className="flex items-center gap-2 text-sm shrink-0 ml-2">
                   {onView && (
-                    <button onClick={(e) => { e.stopPropagation(); onView(item); }} className="text-green-600">查看</button>
+                    <button onClick={(e) => { e.stopPropagation(); onView(item); }} className="text-green-600 dark:text-green-400">查看</button>
                   )}
                   {onEdit && (
-                    <button onClick={(e) => { e.stopPropagation(); onEdit(item); }} className="text-blue-600">编辑</button>
+                    <button onClick={(e) => { e.stopPropagation(); onEdit(item); }} className="text-blue-600 dark:text-blue-400">编辑</button>
                   )}
                   {onDelete && (
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(item); }} className="text-red-600">删除</button>
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(item); }} className="text-red-600 dark:text-red-400">删除</button>
                   )}
                 </div>
               </div>
@@ -358,7 +358,7 @@ export default function EntityList<T extends { id: number }>({
           );
         })}
         {data.length === 0 && (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 text-center text-gray-500 dark:text-gray-400">
             <span className="text-4xl mb-2 block">📭</span>
             <span>暂无数据</span>
           </div>
@@ -367,8 +367,8 @@ export default function EntityList<T extends { id: number }>({
 
       {/* 批量操作栏 */}
       {hasBatchActions && selectedCount > 0 && (
-        <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-          <span className="text-sm text-blue-700 font-medium">已选 {selectedCount} 条</span>
+        <div className="mt-3 bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-700 rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">已选 {selectedCount} 条</span>
           <div className="flex flex-wrap items-center gap-2">
             {onBatchDelete && (
               <button
@@ -387,7 +387,7 @@ export default function EntityList<T extends { id: number }>({
                   🏷️ 批量打标签
                 </button>
                 {showBatchTag && allTags && (
-                  <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg z-10 w-56 max-h-60 overflow-y-auto">
+                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-900 border rounded-lg shadow-lg z-10 w-56 max-h-60 overflow-y-auto">
                     {allTags.map((tag) => (
                       <button
                         key={tag.id}
@@ -395,7 +395,7 @@ export default function EntityList<T extends { id: number }>({
                           onBatchTag(tag.id);
                           setShowBatchTag(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2"
                       >
                         <div
                           className="w-3 h-3 rounded-sm"
@@ -417,7 +417,7 @@ export default function EntityList<T extends { id: number }>({
                   🔄 批量改状态
                 </button>
                 {showBatchStatus && (
-                  <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg z-10 w-48 max-h-60 overflow-y-auto">
+                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-900 border rounded-lg shadow-lg z-10 w-48 max-h-60 overflow-y-auto">
                     {statusOptions.map((opt) => (
                       <button
                         key={opt.value}
@@ -425,7 +425,7 @@ export default function EntityList<T extends { id: number }>({
                           onBatchStatus(opt.value);
                           setShowBatchStatus(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
                       >
                         {opt.label}
                       </button>
@@ -445,7 +445,7 @@ export default function EntityList<T extends { id: number }>({
           </div>
           <button
             onClick={() => onClearSelection?.()}
-            className="sm:ml-auto px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300"
+            className="sm:ml-auto px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
           >
             ❌ 取消选择
           </button>

@@ -73,6 +73,23 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  // ─── 主题切换（null 表示尚未读取客户端主题，避免 SSR 文案不一致） ───
+  const [isDark, setIsDark] = useState<boolean | null>(null);
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, []);
+  const toggleTheme = () => {
+    const next = !(isDark ?? false);
+    setIsDark(next);
+    document.documentElement.classList.toggle('dark', next);
+    try {
+      localStorage.setItem('captureos-theme', next ? 'dark' : 'light');
+    } catch {
+      /* localStorage 不可用时忽略 */
+    }
+  };
+
   const { data: counts } = useSWR<CountsData>('/dashboard/counts', fetchAPI, {
     refreshInterval: 60000,
   });
@@ -227,17 +244,17 @@ export default function Sidebar() {
             </button>
 
             {showReminders && (
-              <div className="absolute right-0 top-full mt-1 w-72 bg-white text-gray-900 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+              <div className="absolute right-0 top-full mt-1 w-72 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
                 {!reminders ? (
-                  <div className="px-3 py-4 text-center text-sm text-gray-500">加载中...</div>
+                  <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">加载中...</div>
                 ) : reminders.total === 0 ? (
-                  <div className="px-3 py-6 text-center text-sm text-gray-500">暂无待办提醒 🎉</div>
+                  <div className="px-3 py-6 text-center text-sm text-gray-500 dark:text-gray-400">暂无待办提醒 🎉</div>
                 ) : (
                   reminders.groups.filter((g) => g.count > 0).map((g) => (
                     <div key={g.type} className="py-1">
                       <div className="px-3 pt-1.5 pb-1 text-xs font-medium text-gray-500 flex items-center gap-1.5">
                         {g.label}
-                        <span className="bg-gray-100 text-gray-600 px-1.5 rounded-full">{g.count}</span>
+                        <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1.5 rounded-full">{g.count}</span>
                       </div>
                       {g.items.map((item) => (
                         <button
@@ -246,9 +263,9 @@ export default function Sidebar() {
                             setShowReminders(false);
                             router.push(`/${g.type}/${item.entity_id}`);
                           }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
                         >
-                          <span className={`shrink-0 px-1.5 py-0.5 rounded text-xs ${statusBgClass[item.status] || 'bg-gray-100 text-gray-800'}`}>
+                          <span className={`shrink-0 px-1.5 py-0.5 rounded text-xs ${statusBgClass[item.status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
                             {reminderStatusLabels[item.status] || item.status}
                           </span>
                           <span className="truncate flex-1" title={item.title}>{item.title}</span>
@@ -282,11 +299,11 @@ export default function Sidebar() {
           </div>
 
           {showSearchDropdown && searchQuery.trim() && (
-            <div className="absolute top-full left-4 right-4 mt-1 bg-white text-gray-900 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+            <div className="absolute top-full left-4 right-4 mt-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
               {searchLoading ? (
-                <div className="px-3 py-4 text-center text-sm text-gray-500">搜索中...</div>
+                <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">搜索中...</div>
               ) : searchResults.length === 0 ? (
-                <div className="px-3 py-4 text-center text-sm text-gray-500">没有匹配结果</div>
+                <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">没有匹配结果</div>
               ) : (
                 <>
                   {Object.entries(groupedSearchResults).map(([type, items]) => (
@@ -304,7 +321,7 @@ export default function Sidebar() {
                             setSearchQuery('');
                             router.push(`${entityRoutes[r.entity_type]}/${r.entity_id}`);
                           }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 truncate"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 truncate"
                           title={r.title}
                         >
                           {r.title}
@@ -314,7 +331,7 @@ export default function Sidebar() {
                   ))}
                   <button
                     onClick={goFullSearch}
-                    className="w-full text-center px-3 py-2.5 text-sm text-blue-600 hover:bg-gray-100 border-t border-gray-100"
+                    className="w-full text-center px-3 py-2.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 border-t border-gray-100 dark:border-gray-700"
                   >
                     查看全部搜索结果 →
                   </button>
@@ -354,6 +371,16 @@ export default function Sidebar() {
             );
           })}
         </nav>
+
+        {/* 主题切换 */}
+        <div className="p-4 border-t border-gray-700">
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+          >
+            {isDark === null ? '🌓 主题切换' : isDark ? '☀️ 切换亮色' : '🌙 切换暗色'}
+          </button>
+        </div>
       </aside>
     </>
   );

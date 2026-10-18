@@ -68,18 +68,18 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       {children}
       {options && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]" onClick={handleCancel}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-5">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-2xl">{style.icon}</span>
-                <h3 className="text-lg font-semibold text-gray-900">{options.title || '确认操作'}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{options.title || '确认操作'}</h3>
               </div>
-              <p className="text-sm text-gray-600 pl-11">{options.message}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 pl-11">{options.message}</p>
             </div>
-            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 flex justify-end gap-3">
               <button
                 onClick={handleCancel}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 {options.cancelText || '取消'}
               </button>

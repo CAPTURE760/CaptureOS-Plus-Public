@@ -112,10 +112,10 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 const TAG_COLORS: Record<string, string> = {
-  project: 'bg-blue-100 text-blue-800', experience: 'bg-yellow-100 text-yellow-800',
-  issue: 'bg-red-100 text-red-800', solution: 'bg-green-100 text-green-800',
-  knowledge: 'bg-purple-100 text-purple-800', decision: 'bg-indigo-100 text-indigo-800',
-  review: 'bg-pink-100 text-pink-800',
+  project: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200', experience: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200',
+  issue: 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200', solution: 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200',
+  knowledge: 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200', decision: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-200',
+  review: 'bg-pink-100 dark:bg-pink-900/40 text-pink-800 dark:text-pink-200',
 };
 
 // 关系类型的中文标签
@@ -215,42 +215,42 @@ export default function EntityDetail({
 
   // 渲染字段值
   const renderField = (key: string, value: unknown) => {
-    if (value === null || value === undefined || value === '') return <span className="text-gray-400">-</span>;
+    if (value === null || value === undefined || value === '') return <span className="text-gray-400 dark:text-gray-500">-</span>;
     if (key.includes('date') || key === 'created_at' || key === 'updated_at') {
       return formatBeijingTime(value as string);
     }
     if (key === 'status') {
       const statusMap: Record<string, { label: string; color: string }> = {
-        open: { label: '待解决', color: 'bg-red-100 text-red-800' },
-        in_progress: { label: '处理中', color: 'bg-yellow-100 text-yellow-800' },
-        resolved: { label: '已解决', color: 'bg-green-100 text-green-800' },
-        closed: { label: '已关闭', color: 'bg-gray-100 text-gray-800' },
-        active: { label: '进行中', color: 'bg-green-100 text-green-800' },
-        completed: { label: '已完成', color: 'bg-blue-100 text-blue-800' },
-        paused: { label: '暂停', color: 'bg-yellow-100 text-yellow-800' },
-        cancelled: { label: '已取消', color: 'bg-gray-100 text-gray-800' },
-        pending: { label: '待执行', color: 'bg-gray-100 text-gray-800' },
-        deprecated: { label: '已废弃', color: 'bg-red-100 text-red-800' },
-        unverified: { label: '待确认', color: 'bg-gray-100 text-gray-800' },
-        verified: { label: '已验证', color: 'bg-green-100 text-green-800' },
-        outdated: { label: '已过时', color: 'bg-yellow-100 text-yellow-800' },
+        open: { label: '待解决', color: 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200' },
+        in_progress: { label: '处理中', color: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200' },
+        resolved: { label: '已解决', color: 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200' },
+        closed: { label: '已关闭', color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200' },
+        active: { label: '进行中', color: 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200' },
+        completed: { label: '已完成', color: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200' },
+        paused: { label: '暂停', color: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200' },
+        cancelled: { label: '已取消', color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200' },
+        pending: { label: '待执行', color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200' },
+        deprecated: { label: '已废弃', color: 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200' },
+        unverified: { label: '待确认', color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200' },
+        verified: { label: '已验证', color: 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200' },
+        outdated: { label: '已过时', color: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200' },
       };
-      const s = statusMap[value as string] || { label: value as string, color: 'bg-gray-100' };
+      const s = statusMap[value as string] || { label: value as string, color: 'bg-gray-100 dark:bg-gray-800' };
       return <span className={`px-2 py-1 rounded text-xs ${s.color}`}>{s.label}</span>;
     }
     if (key === 'priority') {
       const priorityMap: Record<string, { label: string; color: string }> = {
-        '紧急': { label: '🔴 紧急', color: 'bg-red-100 text-red-800' },
-        '高': { label: '🟠 高', color: 'bg-orange-100 text-orange-800' },
-        '中': { label: '🟡 中', color: 'bg-yellow-100 text-yellow-800' },
-        '低': { label: '🟢 低', color: 'bg-green-100 text-green-800' },
+        '紧急': { label: '🔴 紧急', color: 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200' },
+        '高': { label: '🟠 高', color: 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200' },
+        '中': { label: '🟡 中', color: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200' },
+        '低': { label: '🟢 低', color: 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200' },
       };
-      const p = priorityMap[value as string] || { label: String(value), color: 'bg-gray-100' };
+      const p = priorityMap[value as string] || { label: String(value), color: 'bg-gray-100 dark:bg-gray-800' };
       return <span className={`px-2 py-1 rounded text-xs ${p.color}`}>{p.label}</span>;
     }
     if (key === 'effectiveness' || key === 'rating') {
       const v = Number(value);
-      return <span>{'⭐'.repeat(v)} <span className="text-gray-500">({v})</span></span>;
+      return <span>{'⭐'.repeat(v)} <span className="text-gray-500 dark:text-gray-400">({v})</span></span>;
     }
     if (key === 'confidence') {
       const v = Number(value);
@@ -268,20 +268,20 @@ export default function EntityDetail({
   return (
     <div>
       {/* 面包屑导航 */}
-      <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-        <a href="/" className="hover:text-blue-600">首页</a>
+      <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-6">
+        <a href="/" className="hover:text-blue-600 dark:hover:text-blue-400">首页</a>
         <span>/</span>
         <a href={`/${entityType === 'issue' ? 'issues' : entityType === 'experience' ? 'experiences' : entityType + 's'}`}
-          className="hover:text-blue-600">
+          className="hover:text-blue-600 dark:hover:text-blue-400">
           {ENTITY_ICONS[entityType]} {ENTITY_LABELS[entityType]}
         </a>
         <span>/</span>
-        <span className="text-gray-800 font-medium">{String(entity.title)}</span>
+        <span className="text-gray-800 dark:text-gray-200 font-medium">{String(entity.title)}</span>
       </nav>
 
       {/* 操作按钮 */}
       <div className="flex items-center justify-between mb-6">
-        <button onClick={onBack} className="text-blue-600 hover:text-blue-800 flex items-center gap-1">
+        <button onClick={onBack} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1">
           ← 返回列表
         </button>
         <div className="flex gap-2">
@@ -298,7 +298,7 @@ export default function EntityDetail({
       <SuggestionBar entityType={entityType} entityId={entityId} onRelated={() => mutateRelated()} />
 
       {/* 实体信息卡片 */}
-      <div className={`bg-white rounded-lg shadow border-l-4 ${ENTITY_COLORS[entityType] || 'border-gray-500'} p-6 mb-6`}>
+      <div className={`bg-white dark:bg-gray-900 rounded-lg shadow border-l-4 ${ENTITY_COLORS[entityType] || 'border-gray-500'} p-6 mb-6`}>
         <div className="flex items-center gap-2 mb-4">
           <span className="text-2xl">{ENTITY_ICONS[entityType]}</span>
           <h1 className="text-2xl font-bold">{String(entity.title)}</h1>
@@ -315,7 +315,7 @@ export default function EntityDetail({
                  'options', 'source_url', 'github_url', 'tech_stack', 'run_command'].includes(key)) return null;
             return (
               <div key={key}>
-                <span className="text-sm text-gray-500 block">
+                <span className="text-sm text-gray-500 dark:text-gray-400 block">
                   {FIELD_LABELS[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                 </span>
                 <div className="text-sm">{renderField(key, value)}</div>
@@ -334,7 +334,7 @@ export default function EntityDetail({
           if (value === null || value === undefined || value === '') return null;
           return (
             <div key={key} className="mb-4">
-              <span className="text-sm text-gray-500 block mb-1">
+              <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">
                 {FIELD_LABELS[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
               </span>
               <div className="text-sm whitespace-pre-wrap leading-relaxed">{renderField(key, value)}</div>
@@ -345,10 +345,10 @@ export default function EntityDetail({
         {/* 标签 */}
         <div className="border-t pt-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-500">标签</span>
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">标签</span>
             <button
               onClick={() => setShowTagPicker(true)}
-              className="text-xs text-blue-600 hover:text-blue-800"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
             >
               + 管理标签
             </button>
@@ -359,14 +359,14 @@ export default function EntityDetail({
                 style={{ backgroundColor: `${tag.color}20`, border: `1px solid ${tag.color}40`, color: tag.color ?? undefined }}>
                 {tag.name}
               </span>
-            )) : <span className="text-sm text-gray-400">暂无标签</span>}
+            )) : <span className="text-sm text-gray-400 dark:text-gray-500">暂无标签</span>}
           </div>
         </div>
 
          {/* 文件附件 */}
         <div className="border-t pt-4 mt-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-500">📎 附件 ({filesData?.length || 0})</span>
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">📎 附件 ({filesData?.length || 0})</span>
           </div>
 
           {filesData && filesData.length > 0 ? (
@@ -387,20 +387,20 @@ export default function EntityDetail({
                   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
                 };
                 return (
-                  <div key={file.id} className="flex items-center gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors">
+                  <div key={file.id} className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <span className="text-base">{getFileIcon(file.content_type, file.original_name)}</span>
                     <span
                       title={file.original_name}
-                      className="flex-1 truncate text-gray-800"
+                      className="flex-1 truncate text-gray-800 dark:text-gray-200"
                     >
                       {file.original_name}
                     </span>
-                    <span className="text-xs text-gray-400 whitespace-nowrap">{formatSize(file.file_size)}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatSize(file.file_size)}</span>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleFileDownload(file)}
                         title="下载到本地"
-                        className="flex items-center gap-1 text-xs px-2.5 py-1 bg-white border border-gray-200 text-gray-600 rounded-md hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all whitespace-nowrap"
+                        className="flex items-center gap-1 text-xs px-2.5 py-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-700 transition-all whitespace-nowrap"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -410,7 +410,7 @@ export default function EntityDetail({
                       <button
                         onClick={() => handleFileDelete(file.id)}
                         title="删除文件"
-                        className="flex items-center gap-1 text-xs px-2.5 py-1 bg-white border border-gray-200 text-gray-600 rounded-md hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all whitespace-nowrap"
+                        className="flex items-center gap-1 text-xs px-2.5 py-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-700 transition-all whitespace-nowrap"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -423,13 +423,13 @@ export default function EntityDetail({
               })}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 mt-2">暂无附件</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">暂无附件</p>
           )}
         </div>
       </div>
 
       {/* 关联实体 */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold mb-4">关联实体</h2>
 
         {relatedData && relatedData.relations.length > 0 ? (
@@ -437,12 +437,12 @@ export default function EntityDetail({
             {Object.entries(relatedData.by_type).map(([type, rels]) => (
               <div key={type}>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-600">
+                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
                     {ENTITY_ICONS[type]} {ENTITY_LABELS[type] || type} ({rels.length})
                   </h3>
                   <button
                     onClick={() => openRelationPicker(type)}
-                    className="text-xs text-blue-600 hover:text-blue-800"
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                   >
                     + 关联{ENTITY_LABELS[type] || type}
                   </button>
@@ -450,16 +450,16 @@ export default function EntityDetail({
                 <div className="space-y-2">
                   {rels.map((rel) => (
                     <div key={rel.relation_id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <div>
                         <span className="font-medium">{rel.target_title}</span>
-                        <span className="ml-2 text-xs text-gray-500">
+                        <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
                           ({RELATION_LABELS[rel.relation_type.name] || rel.relation_type.description})
                         </span>
                       </div>
                       <button
                         onClick={() => handleDeleteRelation(rel.relation_id)}
-                        className="text-red-400 hover:text-red-600 text-sm"
+                        className="text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-400 text-sm"
                       >
                         ×
                       </button>
@@ -470,7 +470,7 @@ export default function EntityDetail({
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-gray-400 dark:text-gray-500">
             <p className="mb-2">暂无关联实体</p>
             <p className="text-sm">点击下方按钮添加关联</p>
           </div>
@@ -478,11 +478,11 @@ export default function EntityDetail({
 
         {/* 添加关联按钮 */}
         <div className="mt-4 border-t pt-4">
-          <span className="text-sm text-gray-500 mr-2">添加关联：</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">添加关联：</span>
           {Object.keys(ENTITY_LABELS).filter((t) => t !== entityType).map((type) => (
             <button key={type}
               onClick={() => openRelationPicker(type)}
-              className="inline-flex items-center gap-1 px-2 py-1 mr-2 mb-2 text-xs border border-dashed border-gray-300 rounded hover:border-blue-500 hover:text-blue-600">
+              className="inline-flex items-center gap-1 px-2 py-1 mr-2 mb-2 text-xs border border-dashed border-gray-300 dark:border-gray-600 rounded hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400">
               {ENTITY_ICONS[type]} {ENTITY_LABELS[type]}
             </button>
           ))}

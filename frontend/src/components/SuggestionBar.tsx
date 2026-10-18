@@ -75,17 +75,17 @@ export default function SuggestionBar({ entityType, entityId, onRelated }: Sugge
   };
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 relative">
+    <div className="bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6 relative">
       {toast && (
         <div className="absolute top-2 right-2 bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-pulse">
           {toast}
         </div>
       )}
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-medium text-blue-800">💡 可能关联</h3>
+        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">💡 可能关联</h3>
         <button
           onClick={() => setDismissed(true)}
-          className="text-blue-400 hover:text-blue-600 text-xs"
+          className="text-blue-400 dark:text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 text-xs"
         >
           隐藏
         </button>
@@ -96,16 +96,16 @@ export default function SuggestionBar({ entityType, entityId, onRelated }: Sugge
           const isRelated = relatedIds.has(key);
           return (
             <div key={key}
-              className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-blue-200 text-sm">
+              className="flex items-center gap-2 bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-700 text-sm">
               <span>{ENTITY_ICONS[s.entity_type]}</span>
               <span className="max-w-[200px] truncate">{s.title}</span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-400 dark:text-gray-500">
                 共享: {s.shared_tag_names.join(', ')}
               </span>
               <button
                 onClick={() => handle关联(s)}
                 disabled={isRelated}
-                className={`text-xs font-medium ${isRelated ? 'text-green-500 cursor-default' : 'text-blue-600 hover:text-blue-800'}`}
+                className={`text-xs font-medium ${isRelated ? 'text-green-500 cursor-default' : 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300'}`}
               >
                 {isRelated ? '✅ 已关联' : '关联'}
               </button>

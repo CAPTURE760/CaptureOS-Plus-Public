@@ -109,27 +109,27 @@ export default function RelationPicker({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 md:mx-0 max-h-[80vh] overflow-hidden relative">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-md mx-4 md:mx-0 max-h-[80vh] overflow-hidden relative">
         {toast && (
           <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-lg text-sm shadow-lg z-10 animate-pulse">
             {toast}
           </div>
         )}
-        <div className="px-4 py-3 border-b flex justify-between items-center bg-gray-50">
+        <div className="px-4 py-3 border-b flex justify-between items-center bg-gray-50 dark:bg-gray-800">
           <h3 className="font-semibold">
             🔗 关联{ENTITY_LABELS[targetType] || targetType}
           </h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-xl">×</button>
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xl">×</button>
         </div>
 
         <div className="p-4">
           {/* 关系类型选择 */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">关系类型</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">关系类型</label>
             <select
               value={effectiveRelationTypeId || ''}
               onChange={(e) => setRelationTypeId(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
             >
               <option value="">选择关系类型...</option>
               {relationTypes?.map((rt) => (
@@ -142,7 +142,7 @@ export default function RelationPicker({
 
           {/* 搜索实体 */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               搜索{ENTITY_LABELS[targetType] || targetType}
             </label>
             <input
@@ -150,14 +150,14 @@ export default function RelationPicker({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="输入标题搜索..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
             />
           </div>
 
           {/* 实体列表 */}
-          <div className="max-h-[300px] overflow-y-auto border border-gray-200 rounded-lg">
+          <div className="max-h-[300px] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
             {filteredEntities.length === 0 ? (
-              <div className="p-4 text-center text-gray-400 text-sm">暂无数据</div>
+              <div className="p-4 text-center text-gray-400 dark:text-gray-500 text-sm">暂无数据</div>
             ) : (
               filteredEntities.map((entity) => {
                 const isAlreadyRelated = relatedIds.has(entity.id);
@@ -165,12 +165,12 @@ export default function RelationPicker({
                   <div
                     key={entity.id}
                     onClick={() => !isAlreadyRelated && setSelectedEntityId(entity.id)}
-                    className={`px-3 py-2 border-b border-gray-100 last:border-0 text-sm ${
+                    className={`px-3 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0 text-sm ${
                       isAlreadyRelated
-                        ? 'bg-gray-50 text-gray-400 cursor-default line-through'
+                        ? 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-default line-through'
                         : selectedEntityId === entity.id
-                          ? 'bg-blue-50 border-l-2 border-l-blue-500 cursor-pointer'
-                          : 'hover:bg-gray-50 cursor-pointer'
+                          ? 'bg-blue-50 dark:bg-blue-900/40 border-l-2 border-l-blue-500 cursor-pointer'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer'
                     }`}
                   >
                     {entity.title}
@@ -182,9 +182,9 @@ export default function RelationPicker({
           </div>
         </div>
 
-        <div className="px-4 py-3 border-t bg-gray-50 flex justify-end gap-2">
+        <div className="px-4 py-3 border-t bg-gray-50 dark:bg-gray-800 flex justify-end gap-2">
           <button onClick={onClose}
-            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 text-sm">
             取消
           </button>
           <button

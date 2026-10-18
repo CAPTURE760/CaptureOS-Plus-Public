@@ -67,8 +67,8 @@ const ENTITY_ROUTES: Record<string, string> = {
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  '紧急': 'text-red-600 font-bold', '高': 'text-orange-600',
-  '中': 'text-yellow-600', '低': 'text-green-600',
+  '紧急': 'text-red-600 dark:text-red-400 font-bold', '高': 'text-orange-600 dark:text-orange-400',
+  '中': 'text-yellow-600 dark:text-yellow-400', '低': 'text-green-600 dark:text-green-400',
 };
 
 const STATUS_LABELS: Record<string, Record<string, string>> = {
@@ -123,7 +123,7 @@ export default function DashboardPage() {
   };
 
   if (isLoading) return <Loading />;
-  if (error) return <div className="text-center py-8 text-red-600">加载失败</div>;
+  if (error) return <div className="text-center py-8 text-red-600 dark:text-red-400">加载失败</div>;
 
   const pending = data?.pending || { issues: [], decisions: [], knowledge: [] };
   const risks = data?.risks || [];
@@ -153,7 +153,7 @@ export default function DashboardPage() {
             {importing ? '导入中...' : '📤 导入数据'}
           </button>
           <ExportButton variant="primary" />
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-gray-400 dark:text-gray-500">
             {new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
           </div>
         </div>
@@ -161,13 +161,13 @@ export default function DashboardPage() {
 
       {/* 提醒横幅 */}
       {totalPending > 0 && (
-        <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-3">
+        <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/40 dark:to-orange-900/40 border border-amber-200 dark:border-amber-700 rounded-lg px-4 py-3 flex items-center gap-3">
           <span className="text-2xl">🔔</span>
           <div className="flex-1">
-            <span className="text-sm font-medium text-amber-800">
+            <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
               你有 {totalPending} 条待处理事项：
             </span>
-            <span className="text-sm text-amber-700 ml-1">
+            <span className="text-sm text-amber-700 dark:text-amber-300 ml-1">
               {pending.issues.length > 0 && `${pending.issues.length} 个问题`}
               {pending.issues.length > 0 && pending.decisions.length > 0 && '、'}
               {pending.decisions.length > 0 && `${pending.decisions.length} 个决策`}
@@ -183,37 +183,37 @@ export default function DashboardPage() {
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           📋 待处理
           {totalPending > 0 && (
-            <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">{totalPending}</span>
+            <span className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs px-2 py-0.5 rounded-full">{totalPending}</span>
           )}
         </h2>
 
         {totalPending === 0 ? (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-700 text-sm">
+          <div className="bg-green-50 dark:bg-green-900/40 border border-green-200 dark:border-green-700 rounded-lg p-4 text-green-700 dark:text-green-300 text-sm">
             ✅ 没有待处理事项，干得漂亮！
           </div>
         ) : (
           <div className="space-y-3">
             {/* 待解决问题 */}
             {pending.issues.length > 0 && (
-              <div className="bg-white rounded-lg shadow p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-600">
+                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
                     ⚠️ {pending.issues.length} 个问题待解决
                   </h3>
                   <button onClick={() => router.push('/issues')}
-                    className="text-xs text-blue-600 hover:text-blue-800">查看全部</button>
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">查看全部</button>
                 </div>
                 <div className="space-y-1">
                   {pending.issues.slice(0, 5).map((item) => (
                     <div key={item.id}
                       onClick={() => router.push(`/issues/${item.id}`)}
-                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer text-sm">
+                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm">
                       <span className="truncate">{item.title}</span>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
                         {item.priority && (
                           <span className={`text-xs ${PRIORITY_COLORS[item.priority] || ''}`}>{item.priority}</span>
                         )}
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
                           {formatBeijingTime(item.created_at)}
                         </span>
                       </div>
@@ -225,21 +225,21 @@ export default function DashboardPage() {
 
             {/* 待执行决策 */}
             {pending.decisions.length > 0 && (
-              <div className="bg-white rounded-lg shadow p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-600">
+                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
                     🎯 {pending.decisions.length} 个决策待执行
                   </h3>
                   <button onClick={() => router.push('/decisions')}
-                    className="text-xs text-blue-600 hover:text-blue-800">查看全部</button>
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">查看全部</button>
                 </div>
                 <div className="space-y-1">
                   {pending.decisions.slice(0, 5).map((item) => (
                     <div key={item.id}
                       onClick={() => router.push(`/decisions/${item.id}`)}
-                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer text-sm">
+                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm">
                       <span className="truncate">{item.title}</span>
-                      <span className="text-xs text-gray-400 shrink-0 ml-2">
+                      <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">
                         {formatBeijingTime(item.created_at)}
                       </span>
                     </div>
@@ -250,21 +250,21 @@ export default function DashboardPage() {
 
             {/* 待确认知识 */}
             {pending.knowledge.length > 0 && (
-              <div className="bg-white rounded-lg shadow p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-600">
+                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
                     📚 {pending.knowledge.length} 条知识待确认
                   </h3>
                   <button onClick={() => router.push('/knowledge')}
-                    className="text-xs text-blue-600 hover:text-blue-800">查看全部</button>
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">查看全部</button>
                 </div>
                 <div className="space-y-1">
                   {pending.knowledge.slice(0, 5).map((item) => (
                     <div key={item.id}
                       onClick={() => router.push(`/knowledge/${item.id}`)}
-                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer text-sm">
+                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm">
                       <span className="truncate">{item.title}</span>
-                      <span className="text-xs text-gray-400 shrink-0 ml-2">
+                      <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">
                         {formatBeijingTime(item.created_at)}
                       </span>
                     </div>
@@ -283,12 +283,12 @@ export default function DashboardPage() {
           <div className="space-y-2">
             {risks.map((risk, idx) => (
               <div key={idx} className={`rounded-lg p-4 ${
-                risk.type === 'warning' ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'
+                risk.type === 'warning' ? 'bg-red-50 dark:bg-red-900/40 border border-red-200 dark:border-red-700' : 'bg-yellow-50 dark:bg-yellow-900/40 border border-yellow-200 dark:border-yellow-700'
               }`}>
                 <div className={`text-sm font-medium ${
-                  risk.type === 'warning' ? 'text-red-700' : 'text-yellow-700'
+                  risk.type === 'warning' ? 'text-red-700 dark:text-red-300' : 'text-yellow-700 dark:text-yellow-300'
                 }`}>{risk.message}</div>
-                <div className="mt-1 text-xs text-gray-500">
+                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   {risk.items.map((item) => item.title).join('、')}
                 </div>
               </div>
@@ -315,16 +315,16 @@ export default function DashboardPage() {
       {/* 最近动态 */}
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-3">🕐 最近动态</h2>
-        <div className="bg-white rounded-lg shadow divide-y">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow divide-y">
           {activity.length === 0 ? (
-            <div className="p-4 text-center text-gray-400 text-sm">暂无动态</div>
+            <div className="p-4 text-center text-gray-400 dark:text-gray-500 text-sm">暂无动态</div>
           ) : activity.map((item, idx) => (
             <div key={idx}
               onClick={() => router.push(`${ENTITY_ROUTES[item.entity_type]}/${item.entity_id}`)}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer">
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
               <span className="text-lg">{item.icon}</span>
               <span className="flex-1 truncate text-sm">{item.title}</span>
-              <span className="text-xs text-gray-400 shrink-0">
+              <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
                 {formatBeijingTime(item.created_at)}
               </span>
             </div>
@@ -335,7 +335,7 @@ export default function DashboardPage() {
       {/* 导入结果弹窗 */}
       {importResult && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setImportResult(null)}>
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-md w-full mx-4 p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold mb-4">📤 导入完成 ✅</h3>
             <div className="space-y-2 mb-4">
               {Object.entries(IMPORT_ENTITY_LABELS).map(([key, label]) => {
@@ -343,34 +343,34 @@ export default function DashboardPage() {
                 const skp = importResult.skipped[key] || 0;
                 if (imp === 0 && skp === 0) return null;
                 return (
-                  <div key={key} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
-                    <span className="text-gray-700">{label}</span>
-                    <span className="text-gray-500">
-                      {imp > 0 && <span className="text-green-600">{`导入 ${imp}`}</span>}
+                  <div key={key} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                    <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {imp > 0 && <span className="text-green-600 dark:text-green-400">{`导入 ${imp}`}</span>}
                       {imp > 0 && skp > 0 && <span className="mx-1">{`, `}</span>}
-                      {skp > 0 && <span className="text-amber-600">{`跳过 ${skp}`}</span>}
+                      {skp > 0 && <span className="text-amber-600 dark:text-amber-400">{`跳过 ${skp}`}</span>}
                     </span>
                   </div>
                 );
               })}
             </div>
             {importResult.errors.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                <div className="text-sm font-medium text-red-700 mb-1">错误：</div>
+              <div className="bg-red-50 dark:bg-red-900/40 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4">
+                <div className="text-sm font-medium text-red-700 dark:text-red-300 mb-1">错误：</div>
                 {importResult.errors.map((err, i) => (
-                  <div key={i} className="text-xs text-red-600">{err}</div>
+                  <div key={i} className="text-xs text-red-600 dark:text-red-400">{err}</div>
                 ))}
               </div>
             )}
             {importResult.validation_errors && importResult.validation_errors.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                <div className="text-sm font-medium text-red-700 mb-2">
+              <div className="bg-red-50 dark:bg-red-900/40 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4">
+                <div className="text-sm font-medium text-red-700 dark:text-red-300 mb-2">
                   校验失败（{importResult.validation_errors.length} 个问题）：
                 </div>
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {importResult.validation_errors.map((ve, i) => (
-                    <div key={i} className="text-xs text-red-600 flex items-start gap-2">
-                      <span className="shrink-0 font-mono bg-red-100 px-1 rounded">
+                    <div key={i} className="text-xs text-red-600 dark:text-red-400 flex items-start gap-2">
+                      <span className="shrink-0 font-mono bg-red-100 dark:bg-red-900/40 px-1 rounded">
                         {IMPORT_ENTITY_LABELS[ve.entity] || ve.entity} #{ve.index + 1}
                       </span>
                       <span>{ve.message}</span>
@@ -381,7 +381,7 @@ export default function DashboardPage() {
             )}
             <button
               onClick={() => setImportResult(null)}
-              className="w-full py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+              className="w-full py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors"
             >
               关闭
             </button>
@@ -400,22 +400,22 @@ function OverviewCard({
 }) {
   const total = Object.values(data).reduce((a, b) => a + b, 0);
   return (
-    <div className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition-shadow"
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition-shadow"
       onClick={() => router.push(route)}>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-lg">{icon}</span>
         <span className="font-medium text-sm">{title}</span>
-        <span className="text-xs text-gray-400 ml-auto">{total}</span>
+        <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">{total}</span>
       </div>
       <div className="space-y-1">
         {Object.entries(data).map(([status, count]) => (
           <div key={status} className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">{labels[status] || status}</span>
+            <span className="text-gray-500 dark:text-gray-400">{labels[status] || status}</span>
             <span className="font-mono">{count}</span>
           </div>
         ))}
         {Object.keys(data).length === 0 && (
-          <div className="text-xs text-gray-400">暂无数据</div>
+          <div className="text-xs text-gray-400 dark:text-gray-500">暂无数据</div>
         )}
       </div>
     </div>

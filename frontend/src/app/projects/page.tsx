@@ -84,7 +84,7 @@ const columns = [
     key: 'description',
     label: '描述',
     render: (item: Project) => (
-      <span className="line-clamp-2 text-gray-600" title={item.description || ''}>
+      <span className="line-clamp-2 text-gray-600 dark:text-gray-400" title={item.description || ''}>
         {item.description || '-'}
       </span>
     ),
@@ -94,7 +94,7 @@ const columns = [
     key: 'status',
     label: '状态',
     render: (item: Project) => (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${statusBgClass[item.status] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded text-xs font-medium ${statusBgClass[item.status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
         {projectStatusEmoji[item.status] || ''} {projectStatusLabelMap[item.status] || item.status}
       </span>
     ),
@@ -104,7 +104,7 @@ const columns = [
     key: 'priority',
     label: '优先级',
     render: (item: Project) => (
-      <span className={`px-2 py-1 rounded text-xs ${priorityBgClass[item.priority] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded text-xs ${priorityBgClass[item.priority] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
         {item.priority}
       </span>
     ),
@@ -114,7 +114,7 @@ const columns = [
     key: 'created_at',
     label: '创建时间',
     render: (item: Project) => (
-      <span className="text-gray-500 text-xs whitespace-nowrap">
+      <span className="text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
         🕐 {formatBeijingTime(item.created_at)}
       </span>
     ),
@@ -297,14 +297,14 @@ export default function ProjectsPage() {
   };
 
   if (isLoading) return <SkeletonList />;
-  if (error) return <div className="text-center py-8 text-red-600">加载失败</div>;
+  if (error) return <div className="text-center py-8 text-red-600 dark:text-red-400">加载失败</div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">📁 项目管理</h1>
-          <p className="text-sm text-gray-500 mt-1">共 {total} 个项目</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">共 {total} 个项目</p>
         </div>
         <ExportButton entityType="projects" />
         <button

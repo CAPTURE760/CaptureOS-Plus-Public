@@ -63,7 +63,7 @@ const columns = [
     key: 'status',
     label: '状态',
     render: (item: Issue) => (
-      <span className={`px-2 py-1 rounded text-xs ${statusBgClass[item.status] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded text-xs ${statusBgClass[item.status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
         {statusLabelMap[item.status] || item.status}
       </span>
     ),
@@ -71,7 +71,7 @@ const columns = [
   {
     key: 'priority', label: '优先级',
     render: (item: Issue) => (
-      <span className={`px-2 py-1 rounded text-xs ${priorityBgClass[item.priority] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded text-xs ${priorityBgClass[item.priority] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
         {item.priority}
       </span>
     ),
@@ -260,14 +260,14 @@ export default function IssuesPage() {
   };
 
   if (isLoading) return <SkeletonList />;
-  if (error) return <div className="text-center py-8 text-red-600">加载失败</div>;
+  if (error) return <div className="text-center py-8 text-red-600 dark:text-red-400">加载失败</div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">⚠️ 问题管理</h1>
-          <p className="text-sm text-gray-500 mt-1">共 {total} 个问题</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">共 {total} 个问题</p>
         </div>
         <ExportButton entityType="issues" />
         <button

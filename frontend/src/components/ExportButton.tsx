@@ -105,7 +105,7 @@ export default function ExportButton({ entityType, variant = 'small', className 
       <button
         onClick={handleExport}
         disabled={exporting}
-        className={`px-2.5 py-1 text-xs bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 ${className}`}
+        className={`px-2.5 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 ${className}`}
       >
         <span>📄</span>
         <span>{exporting ? '导出中...' : '导出 Word'}</span>
@@ -126,15 +126,15 @@ export default function ExportButton({ entityType, variant = 'small', className 
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-sm w-full mx-4 p-6" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold mb-4">📄 选择导出内容</h3>
 
             {/* 格式选择 */}
-            <div className="flex rounded-lg border border-gray-200 overflow-hidden mb-4">
+            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
               <button
                 onClick={() => setFormat('word')}
                 className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                  format === 'word' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  format === 'word' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
                 📝 Word 报告
@@ -142,7 +142,7 @@ export default function ExportButton({ entityType, variant = 'small', className 
               <button
                 onClick={() => setFormat('json')}
                 className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                  format === 'json' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  format === 'json' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
                 💾 JSON 数据
@@ -150,20 +150,20 @@ export default function ExportButton({ entityType, variant = 'small', className 
             </div>
 
             {format === 'json' && (
-              <p className="text-xs text-gray-500 mb-4 bg-gray-50 rounded-lg px-3 py-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
                 JSON 导出包含所选模块数据（自动附带标签、关联、附件记录），可通过首页「导入数据」恢复。附件文件本体需另外备份 uploads 目录。
               </p>
             )}
 
             {/* 全选/全不选 */}
-            <label className="flex items-center gap-2 py-2 px-3 rounded-lg mb-2 border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
+            <label className="flex items-center gap-2 py-2 px-3 rounded-lg mb-2 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
               <input
                 type="checkbox"
                 checked={selected.size === ENTITY_OPTIONS.length}
                 onChange={toggleAll}
-                className="w-4 h-4 rounded text-blue-600"
+                className="w-4 h-4 rounded text-blue-600 dark:text-blue-400"
               />
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {selected.size === ENTITY_OPTIONS.length ? '取消全选' : '全选'}
               </span>
             </label>
@@ -173,15 +173,15 @@ export default function ExportButton({ entityType, variant = 'small', className 
               {ENTITY_OPTIONS.map(opt => (
                 <label
                   key={opt.key}
-                  className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
                 >
                   <input
                     type="checkbox"
                     checked={selected.has(opt.key)}
                     onChange={() => toggle(opt.key)}
-                    className="w-4 h-4 rounded text-blue-600"
+                    className="w-4 h-4 rounded text-blue-600 dark:text-blue-400"
                   />
-                  <span className="text-sm text-gray-700">{opt.label}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{opt.label}</span>
                 </label>
               ))}
             </div>
@@ -190,7 +190,7 @@ export default function ExportButton({ entityType, variant = 'small', className 
             <div className="flex gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+                className="flex-1 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors"
               >
                 取消
               </button>

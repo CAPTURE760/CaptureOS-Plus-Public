@@ -85,7 +85,7 @@ const columns = [
     key: 'created_at',
     label: '创建时间',
     render: (item: Review) => (
-      <span className="text-gray-500 text-xs whitespace-nowrap">
+      <span className="text-gray-500 text-xs whitespace-nowrap dark:text-gray-400">
         🕐 {formatBeijingTime(item.created_at)}
       </span>
     ),
@@ -248,7 +248,7 @@ export default function ReviewsPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">📝 复盘总结</h1>
-          <p className="text-sm text-gray-500 mt-1">共 {total} 次复盘</p>
+          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">共 {total} 次复盘</p>
         </div>
         <ExportButton entityType="reviews" />
         <button

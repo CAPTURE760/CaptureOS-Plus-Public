@@ -16,11 +16,11 @@ export function renderMarkdown(text: string): string {
 
   // 代码块 ```...```
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre class="bg-gray-100 rounded p-3 my-2 text-sm overflow-x-auto"><code class="language-${lang}">${code.trim()}</code></pre>`;
+    return `<pre class="bg-gray-100 dark:bg-gray-800 rounded p-3 my-2 text-sm overflow-x-auto"><code class="language-${lang}">${code.trim()}</code></pre>`;
   });
 
   // 行内代码
-  html = html.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm text-pink-600">$1</code>');
+  html = html.replace(/`([^`]+)`/g, '<code class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm text-pink-600 dark:text-pink-400">$1</code>');
 
   // 标题 h1-h4
   html = html.replace(/^#### (.+)$/gm, '<h4 class="text-base font-bold mt-3 mb-1">$1</h4>');
@@ -38,13 +38,13 @@ export function renderMarkdown(text: string): string {
 
   // 链接和图片
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full rounded my-2" />');
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>');
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">$1</a>');
 
   // 分割线
-  html = html.replace(/^---+$/gm, '<hr class="border-gray-300 my-4" />');
+  html = html.replace(/^---+$/gm, '<hr class="border-gray-300 dark:border-gray-600 my-4" />');
 
   // 引用
-  html = html.replace(/^&gt; (.+)$/gm, '<blockquote class="border-l-4 border-gray-300 pl-4 py-1 my-2 text-gray-600 italic">$1</blockquote>');
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote class="border-l-4 border-gray-300 dark:border-gray-600 pl-4 py-1 my-2 text-gray-600 dark:text-gray-400 italic">$1</blockquote>');
 
   // 无序列表
   html = html.replace(/^[\-\*] (.+)$/gm, '<li class="ml-4 list-disc">$1</li>');

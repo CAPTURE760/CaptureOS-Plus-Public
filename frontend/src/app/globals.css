@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 暗色模式：让原生控件（date/select/滚动条）跟随深色渲染 */
+.dark {
+  color-scheme: dark;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

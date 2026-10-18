@@ -118,7 +118,7 @@ const columns = [
     key: 'description',
     label: '描述',
     render: (item: Tag) => (
-      <span className="line-clamp-2 text-gray-600" title={item.description || ''}>
+      <span className="line-clamp-2 text-gray-600 dark:text-gray-400" title={item.description || ''}>
         {item.description || '-'}
       </span>
     ),
@@ -128,7 +128,7 @@ const columns = [
     key: 'created_at',
     label: '创建时间',
     render: (item: Tag) => (
-      <span className="text-gray-500 text-xs whitespace-nowrap">
+      <span className="text-gray-500 text-xs whitespace-nowrap dark:text-gray-400">
         🕐 {formatBeijingTime(item.created_at)}
       </span>
     ),
@@ -190,7 +190,7 @@ export default function TagsPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">🏷️ 标签管理</h1>
-          <p className="text-sm text-gray-500 mt-1">共 {data?.length || 0} 个标签</p>
+          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">共 {data?.length || 0} 个标签</p>
         </div>
         <button
           onClick={() => {
@@ -206,8 +206,8 @@ export default function TagsPage() {
 
       {/* 标签预览 */}
       {data && data.length > 0 && (
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-3">标签预览</h3>
+        <div className="bg-white p-4 rounded-lg shadow mb-6 dark:bg-gray-900">
+          <h3 className="text-sm font-medium text-gray-500 mb-3 dark:text-gray-400">标签预览</h3>
           <div className="flex flex-wrap gap-3">
             {data.map((tag) => (
               <TagBlock key={tag.id} tag={tag} />
@@ -217,7 +217,7 @@ export default function TagsPage() {
       )}
 
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow mb-6 border-l-4 border-gray-500">
+        <div className="bg-white p-6 rounded-lg shadow mb-6 border-l-4 border-gray-500 dark:bg-gray-900">
           <h2 className="text-lg font-semibold mb-4">
             {editingItem ? '✏️ 编辑标签' : '➕ 新建标签'}
           </h2>
