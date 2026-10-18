@@ -312,10 +312,9 @@ export default function ProjectsPage() {
             setEditingItem(null);
             setShowForm(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-lg hover:bg-blue-700"
         >
-          <span>➕</span>
-          <span>新建项目</span>
+          新建项目
         </button>
       </div>
 

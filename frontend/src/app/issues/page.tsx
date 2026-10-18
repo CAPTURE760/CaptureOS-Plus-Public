@@ -275,7 +275,7 @@ export default function IssuesPage() {
             setEditingItem(null);
             setShowForm(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-lg hover:bg-blue-700"
         >
           新建问题
         </button>

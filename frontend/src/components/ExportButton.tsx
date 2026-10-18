@@ -105,7 +105,7 @@ export default function ExportButton({ entityType, variant = 'small', className 
       <button
         onClick={handleExport}
         disabled={exporting}
-        className={`px-2.5 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 ${className}`}
+        className={`px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 ${className}`}
       >
         <span>📄</span>
         <span>{exporting ? '导出中...' : '导出 Word'}</span>
