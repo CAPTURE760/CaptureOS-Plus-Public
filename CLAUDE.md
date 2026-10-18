@@ -20,7 +20,7 @@ Personal Asset OS：管理项目、经验、问题、解决方案、知识、决
 ```
 backend/
   app/
-    api/          # 路由：projects, issues, solutions, knowledge, decisions, experiences, reviews, tags, relations, entity_relations, timeline, search, dashboard, export, export_word, import_data, upload, suggestions
+    api/          # 路由：projects, issues, solutions, knowledge, decisions, experiences, reviews, tags, relations, entity_relations(辅助), timeline, search, dashboard, export, export_word, import_data, upload, file_attachments, suggestions
     models/       # SQLAlchemy 模型：project, issue, solution, knowledge, decision, experience, review, tag, relation
     schemas/      # Pydantic schemas（对应每个 model）
     main.py       # FastAPI 入口，CORS + static files (/uploads)
@@ -84,12 +84,11 @@ docker compose exec backend alembic upgrade head
 | `/api/experiences` | 经验 CRUD |
 | `/api/issues` | 问题 CRUD |
 | `/api/solutions` | 解决方案 CRUD |
-| `/api/knowledge` | 知识 CRUD |
+| `/api/knowledges` | 知识 CRUD（注意是复数 knowledges） |
 | `/api/decisions` | 决策 CRUD |
 | `/api/reviews` | 复盘 CRUD |
 | `/api/tags` | 标签 CRUD（含软删除 is_active） |
-| `/api/relations` | 实体关联（8 种关系类型） |
-| `/api/entity-relations` | 实体关联（智能推荐） |
+| `/api/relations` | 实体关联（8 种关系类型；entity_relations.py 仅为内部辅助函数，非注册路由） |
 | `/api/timeline` | 时间线（Union-Find 链路聚合） |
 | `/api/search` | 全文搜索（ILIKE + pg_trgm） |
 | `/api/dashboard` | 仪表盘统计（含待处理 pending / 风险提醒 risks） |
@@ -97,6 +96,7 @@ docker compose exec backend alembic upgrade head
 | `/api/export/word` | Word 导出 |
 | `/api/import` | 数据导入 |
 | `/api/upload` | 文件上传 |
+| `/api/file-attachments` | 附件记录 CRUD（文件本体走 /uploads 静态服务） |
 | `/api/suggestions` | 智能建议 |
 | `/health` | 健康检查（无前缀） |
 
