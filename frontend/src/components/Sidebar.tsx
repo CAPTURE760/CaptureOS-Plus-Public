@@ -33,6 +33,7 @@ interface ReminderItem {
   title: string;
   status: string;
   priority: string | null;
+  days_open: number | null;
   created_at: string | null;
 }
 
@@ -100,6 +101,40 @@ export default function Sidebar() {
   });
   const [showReminders, setShowReminders] = useState(false);
   const remindersRef = useRef<HTMLDivElement>(null);
+
+  // ─── 桌面通知：运行期间待办数增加时弹系统通知 ───
+  const [notifyEnabled, setNotifyEnabled] = useState(false);
+  const prevTotalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      setNotifyEnabled(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!reminders) return;
+    const prev = prevTotalRef.current;
+    prevTotalRef.current = reminders.total;
+    if (
+      notifyEnabled &&
+      typeof Notification !== 'undefined' &&
+      prev !== null &&
+      reminders.total > prev
+    ) {
+      const latest = reminders.groups.flatMap((g) => g.items)[0];
+      new Notification('CaptureOS 提醒', {
+        body: `新增待办，当前共 ${reminders.total} 条${latest ? `，最新：${latest.title}` : ''}`,
+        icon: '/favicon.svg',
+      });
+    }
+  }, [reminders, notifyEnabled]);
+
+  const requestNotify = async () => {
+    if (typeof Notification === 'undefined') return;
+    const perm = await Notification.requestPermission();
+    setNotifyEnabled(perm === 'granted');
+  };
 
   // ─── 全局搜索 ─────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
@@ -335,11 +370,27 @@ export default function Sidebar() {
                         <span className={`shrink-0 px-1.5 py-0.5 rounded text-xs ${statusBgClass[item.status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
                           {reminderStatusLabels[item.status] || item.status}
                         </span>
+                        {item.priority === '紧急' && <span className="shrink-0" title="紧急">🔴</span>}
                         <span className="truncate flex-1" title={item.title}>{item.title}</span>
+                        {item.days_open != null && item.days_open >= 7 && (
+                          <span className="shrink-0 text-xs text-orange-600 dark:text-orange-400">
+                            停滞{item.days_open}天
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
                 ))
+              )}
+
+              {/* 桌面通知开关 */}
+              {!notifyEnabled && (
+                <button
+                  onClick={requestNotify}
+                  className="w-full text-center px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 border-t border-gray-100 dark:border-gray-700"
+                >
+                  🔔 开启桌面通知，新待办自动提醒
+                </button>
               )}
             </div>
           )}
