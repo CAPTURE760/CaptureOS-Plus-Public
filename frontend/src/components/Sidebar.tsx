@@ -226,8 +226,8 @@ export default function Sidebar() {
             <p className="text-sm text-gray-400">个人资产管理系统</p>
           </div>
 
-          {/* 通知铃铛 */}
-          <div ref={remindersRef} className="relative shrink-0">
+          {/* 通知铃铛（面板在下方搜索区展开，避免遮挡搜索框/溢出屏幕） */}
+          <div ref={remindersRef}>
             <button
               onClick={() => setShowReminders(!showReminders)}
               className="relative p-2 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
@@ -242,40 +242,6 @@ export default function Sidebar() {
                 </span>
               )}
             </button>
-
-            {showReminders && (
-              <div className="absolute right-0 top-full mt-1 w-72 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
-                {!reminders ? (
-                  <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">加载中...</div>
-                ) : reminders.total === 0 ? (
-                  <div className="px-3 py-6 text-center text-sm text-gray-500 dark:text-gray-400">暂无待办提醒 🎉</div>
-                ) : (
-                  reminders.groups.filter((g) => g.count > 0).map((g) => (
-                    <div key={g.type} className="py-1">
-                      <div className="px-3 pt-1.5 pb-1 text-xs font-medium text-gray-500 flex items-center gap-1.5">
-                        {g.label}
-                        <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1.5 rounded-full">{g.count}</span>
-                      </div>
-                      {g.items.map((item) => (
-                        <button
-                          key={`${item.entity_type}-${item.entity_id}`}
-                          onClick={() => {
-                            setShowReminders(false);
-                            router.push(`/${g.type}/${item.entity_id}`);
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
-                        >
-                          <span className={`shrink-0 px-1.5 py-0.5 rounded text-xs ${statusBgClass[item.status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
-                            {reminderStatusLabels[item.status] || item.status}
-                          </span>
-                          <span className="truncate flex-1" title={item.title}>{item.title}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
           </div>
         </div>
 
@@ -336,6 +302,44 @@ export default function Sidebar() {
                     查看全部搜索结果 →
                   </button>
                 </>
+              )}
+            </div>
+          )}
+
+          {/* 通知提醒面板 — 与搜索下拉同位展开，不遮挡搜索框 */}
+          {showReminders && (
+            <div
+              onMouseDown={(e) => e.stopPropagation()}
+              className="absolute top-full left-4 right-4 mt-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto"
+            >
+              {!reminders ? (
+                <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">加载中...</div>
+              ) : reminders.total === 0 ? (
+                <div className="px-3 py-6 text-center text-sm text-gray-500 dark:text-gray-400">暂无待办提醒 🎉</div>
+              ) : (
+                reminders.groups.filter((g) => g.count > 0).map((g) => (
+                  <div key={g.type} className="py-1">
+                    <div className="px-3 pt-1.5 pb-1 text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                      {g.label}
+                      <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1.5 rounded-full">{g.count}</span>
+                    </div>
+                    {g.items.map((item) => (
+                      <button
+                        key={`${item.entity_type}-${item.entity_id}`}
+                        onClick={() => {
+                          setShowReminders(false);
+                          router.push(`/${g.type}/${item.entity_id}`);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+                      >
+                        <span className={`shrink-0 px-1.5 py-0.5 rounded text-xs ${statusBgClass[item.status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
+                          {reminderStatusLabels[item.status] || item.status}
+                        </span>
+                        <span className="truncate flex-1" title={item.title}>{item.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))
               )}
             </div>
           )}
