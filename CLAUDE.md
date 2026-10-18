@@ -20,7 +20,7 @@ Personal Asset OS：管理项目、经验、问题、解决方案、知识、决
 ```
 backend/
   app/
-    api/          # 路由：projects, issues, solutions, knowledge, decisions, experiences, reviews, tags, relations, entity_relations, timeline, search, dashboard, reminders, export, export_word, import_data, upload, suggestions
+    api/          # 路由：projects, issues, solutions, knowledge, decisions, experiences, reviews, tags, relations, entity_relations, timeline, search, dashboard, export, export_word, import_data, upload, suggestions
     models/       # SQLAlchemy 模型：project, issue, solution, knowledge, decision, experience, review, tag, relation
     schemas/      # Pydantic schemas（对应每个 model）
     main.py       # FastAPI 入口，CORS + static files (/uploads)
@@ -92,8 +92,7 @@ docker compose exec backend alembic upgrade head
 | `/api/entity-relations` | 实体关联（智能推荐） |
 | `/api/timeline` | 时间线（Union-Find 链路聚合） |
 | `/api/search` | 全文搜索（ILIKE + pg_trgm） |
-| `/api/dashboard` | 仪表盘统计 |
-| `/api/reminders` | 通知提醒（未关闭问题+进行中项目聚合） |
+| `/api/dashboard` | 仪表盘统计（含待处理 pending / 风险提醒 risks） |
 | `/api/export` | 数据导出 |
 | `/api/export/word` | Word 导出 |
 | `/api/import` | 数据导入 |
@@ -103,7 +102,7 @@ docker compose exec backend alembic upgrade head
 
 ## 待办事项
 
-> 已完成（2026-10-18 核对）：分页（列表/搜索/时间线真实分页）、批量操作（EntityList 批量删除/打标签/改状态）、移动端适配（Sidebar 汉堡+抽屉布局）、搜索高亮（搜索页 HighlightText）、通知/提醒（/api/reminders + Sidebar 铃铛面板）、全局搜索（Sidebar 防抖下拉 + Ctrl/Cmd+K）、骨架屏（SkeletonList 组件）、暗色模式（darkMode class + localStorage 持久化 + 全量 dark: 变体）
+> 已完成（2026-10-18 核对）：分页（列表/搜索/时间线真实分页）、批量操作（EntityList 批量删除/打标签/改状态）、移动端适配（Sidebar 汉堡+抽屉布局）、搜索高亮（搜索页 HighlightText）、全局搜索（Sidebar 防抖下拉 + Ctrl/Cmd+K）、骨架屏（SkeletonList 组件）、暗色模式（darkMode class + localStorage 持久化 + 全量 dark: 变体）、提醒增强（仪表盘待处理紧急置顶 + 停滞超 7 天警示；铃铛/独立提醒 UI 已按用户要求移除，提醒统一走仪表盘）
 
 > 约定：新增页面/组件的 Tailwind 浅色类需同步补 dark: 变体；状态/类型徽章颜色统一在 lib/constants.ts 维护（已含 dark 变体），不要在组件里硬编码
 

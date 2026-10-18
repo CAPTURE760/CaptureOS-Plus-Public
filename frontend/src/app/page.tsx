@@ -71,6 +71,16 @@ const PRIORITY_COLORS: Record<string, string> = {
   '中': 'text-yellow-600 dark:text-yellow-400', '低': 'text-green-600 dark:text-green-400',
 };
 
+// 待处理排序权重：紧急 > 高 > 中 > 低 > 无
+const PRIORITY_WEIGHT: Record<string, number> = { '紧急': 4, '高': 3, '中': 2, '低': 1 };
+
+// 停滞判定：创建超过 N 天仍未处理
+const STALE_DAYS = 7;
+
+function staleDays(createdAt: string): number {
+  return Math.max(Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000), 0);
+}
+
 const STATUS_LABELS: Record<string, Record<string, string>> = {
   issues: { open: '待解决', in_progress: '处理中', resolved: '已解决', closed: '已关闭' },
   projects: { active: '进行中', completed: '已完成', paused: '暂停', cancelled: '已取消' },
@@ -131,6 +141,9 @@ export default function DashboardPage() {
   const activity = data?.recent_activity || [];
 
   const totalPending = pending.issues.length + pending.decisions.length + pending.knowledge.length;
+  const urgentCount = pending.issues.filter((i) => i.priority === '紧急').length;
+  const staleCount = [...pending.issues, ...pending.decisions, ...pending.knowledge]
+    .filter((i) => staleDays(i.created_at) >= STALE_DAYS).length;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -174,6 +187,13 @@ export default function DashboardPage() {
               {(pending.issues.length > 0 || pending.decisions.length > 0) && pending.knowledge.length > 0 && '、'}
               {pending.knowledge.length > 0 && `${pending.knowledge.length} 条知识`}
             </span>
+            {(urgentCount > 0 || staleCount > 0) && (
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300 ml-2">
+                {urgentCount > 0 && `🔴 紧急 ${urgentCount}`}
+                {urgentCount > 0 && staleCount > 0 && ' · '}
+                {staleCount > 0 && `停滞 ${staleCount} 条超 ${STALE_DAYS} 天`}
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -204,14 +224,28 @@ export default function DashboardPage() {
                     className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">查看全部</button>
                 </div>
                 <div className="space-y-1">
-                  {pending.issues.slice(0, 5).map((item) => (
+                  {[...pending.issues]
+                    .sort((a, b) =>
+                      (PRIORITY_WEIGHT[b.priority || ''] || 0) - (PRIORITY_WEIGHT[a.priority || ''] || 0) ||
+                      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                    )
+                    .slice(0, 5)
+                    .map((item) => (
                     <div key={item.id}
                       onClick={() => router.push(`/issues/${item.id}`)}
                       className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm">
-                      <span className="truncate">{item.title}</span>
+                      <span className="truncate">
+                        {item.priority === '紧急' && <span className="mr-1" title="紧急">🔴</span>}
+                        {item.title}
+                      </span>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
                         {item.priority && (
                           <span className={`text-xs ${PRIORITY_COLORS[item.priority] || ''}`}>{item.priority}</span>
+                        )}
+                        {staleDays(item.created_at) >= STALE_DAYS && (
+                          <span className="text-xs text-orange-600 dark:text-orange-400">
+                            停滞{staleDays(item.created_at)}天
+                          </span>
                         )}
                         <span className="text-xs text-gray-400 dark:text-gray-500">
                           {formatBeijingTime(item.created_at)}
@@ -234,14 +268,24 @@ export default function DashboardPage() {
                     className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">查看全部</button>
                 </div>
                 <div className="space-y-1">
-                  {pending.decisions.slice(0, 5).map((item) => (
+                  {[...pending.decisions]
+                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                    .slice(0, 5)
+                    .map((item) => (
                     <div key={item.id}
                       onClick={() => router.push(`/decisions/${item.id}`)}
                       className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm">
                       <span className="truncate">{item.title}</span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">
-                        {formatBeijingTime(item.created_at)}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        {staleDays(item.created_at) >= STALE_DAYS && (
+                          <span className="text-xs text-orange-600 dark:text-orange-400">
+                            停滞{staleDays(item.created_at)}天
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          {formatBeijingTime(item.created_at)}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -259,14 +303,24 @@ export default function DashboardPage() {
                     className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">查看全部</button>
                 </div>
                 <div className="space-y-1">
-                  {pending.knowledge.slice(0, 5).map((item) => (
+                  {[...pending.knowledge]
+                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                    .slice(0, 5)
+                    .map((item) => (
                     <div key={item.id}
                       onClick={() => router.push(`/knowledge/${item.id}`)}
                       className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm">
                       <span className="truncate">{item.title}</span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">
-                        {formatBeijingTime(item.created_at)}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        {staleDays(item.created_at) >= STALE_DAYS && (
+                          <span className="text-xs text-orange-600 dark:text-orange-400">
+                            停滞{staleDays(item.created_at)}天
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          {formatBeijingTime(item.created_at)}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
