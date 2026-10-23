@@ -1,5 +1,5 @@
 #!/bin/bash
-# 服务器一键更新脚本
+# 服务器一键更新脚本（日常更新用，证书已存在）
 # 用法: ./deploy.sh
 # 作用: 拉取最新镜像 → 重启容器 → 跑数据库迁移
 # 放在服务器 deploy/ 目录下执行
@@ -18,5 +18,5 @@ echo "🗄️  运行数据库迁移..."
 docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T backend alembic upgrade head
 
 echo "✅ 部署完成"
-echo "   前端: $(grep SERVER_PUBLIC_URL .env.prod | head -1)"
-echo "   后端健康检查: $(grep NEXT_PUBLIC_API_URL .env.prod | head -1 | cut -d= -f2 | sed 's#/api##')/health"
+echo "   前端: https://example.com"
+echo "   后端健康检查: https://example.com/health"
