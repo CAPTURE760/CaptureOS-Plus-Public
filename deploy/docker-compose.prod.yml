@@ -10,6 +10,7 @@
 services:
   db:
     image: postgres:16-alpine
+    container_name: captureos-db
     environment:
       POSTGRES_USER: captureos
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -95,11 +96,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - backups_data:/backups
       - uploads_data:/uploads:ro
-      - ../scripts/backup.sh:/scripts/backup.sh:ro
+      - ./scripts/backup.sh:/scripts/backup.sh:ro
     environment:
       BACKUP_DIR: /backups
       UPLOADS_DIR: /uploads
-      DB_CONTAINER: captureos-db-1
+      DB_CONTAINER: captureos-db
       RETENTION_DAYS: "14"
     depends_on:
       db:
