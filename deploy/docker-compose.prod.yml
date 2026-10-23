@@ -1,10 +1,10 @@
 # 生产环境 Compose（公网服务器用，与本地 docker-compose.yml 完全独立）
-# 架构: nginx(80/443) → frontend(3000) / backend(8000) → db(5432)
-# 前端后端不暴露公网端口，全部经 nginx 反代（同源，无需配 CORS）
+# 架构: 宿主机 nginx(80/443) → 127.0.0.1:3000(frontend) / 127.0.0.1:8000(backend) → db(5432)
+# 前端后端仅绑定回环地址 127.0.0.1，不暴露公网，统一经宿主机 nginx 反代（同源，无需配 CORS）
+# HTTPS 证书由 certbot 容器签发并绑定挂载到宿主机 ./certs，供宿主机 nginx 读取
 #
 # 用法:
-#   首次:  docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
-#          docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T backend alembic upgrade head
+#   首次:  按 README 步骤放置宿主机 nginx 配置后执行 ./init.sh
 #   更新:  ./deploy.sh
 
 services:
@@ -26,10 +26,12 @@ services:
 
   backend:
     image: ${BACKEND_IMAGE}
-    expose:
-      - "8000"
+    # 仅绑定回环地址，宿主机 nginx 反代到 127.0.0.1:8000
+    ports:
+      - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://captureos:${POSTGRES_PASSWORD}@db:5432/captureos
+      DATABASE_URL_SYNC: postgresql+psycopg2://captureos:${POSTGRES_PASSWORD}@db:5432/captureos
       APP_NAME: CaptureOS
       DEBUG: "false"
       # 同源部署，CORS 基本用不上，仍放行域名与本地备用
@@ -50,8 +52,9 @@ services:
 
   frontend:
     image: ${FRONTEND_IMAGE}
-    expose:
-      - "3000"
+    # 仅绑定回环地址，宿主机 nginx 反代到 127.0.0.1:3000
+    ports:
+      - "127.0.0.1:3000:3000"
     environment:
       # 同源部署，浏览器用相对路径调后端
       NEXT_PUBLIC_API_URL: /api
@@ -64,29 +67,15 @@ services:
           memory: 256M
           cpus: "0.25"
 
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: captureos-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - certbot_data:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    depends_on:
-      - frontend
-      - backend
-    restart: unless-stopped
-
   # HTTPS 证书自动签发与续签（Let's Encrypt）
+  # 证书目录和 acme-challenge 目录绑定挂载到宿主机，供宿主机 nginx 读取/提供验证
   certbot:
     image: certbot/certbot:latest
     volumes:
-      - certbot_data:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    # 首次签证书用，后续靠 cron 续签
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+      - ./certs:/etc/letsencrypt
+      - ./certbot-www:/var/www/certbot
+    # 续签用 webroot 模式（宿主机 nginx 提供 acme-challenge），无需占用 80 端口
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done;'"
     restart: unless-stopped
 
   # 启动时自动备份（sidecar，执行完自动退出，同一天只备份一次）
@@ -112,5 +101,3 @@ volumes:
   postgres_data:
   uploads_data:
   backups_data:
-  certbot_data:
-  certbot_www:
