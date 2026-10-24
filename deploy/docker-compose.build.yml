@@ -37,7 +37,8 @@ services:
       DATABASE_URL_SYNC: postgresql+psycopg2://captureos:${POSTGRES_PASSWORD}@db:5432/captureos
       APP_NAME: CaptureOS
       DEBUG: "false"
-      CORS_ORIGINS: '["https://example.com","https://www.example.com","http://localhost:3000","http://localhost:8001"]'
+      # 域名从 .env.prod 的 CORS_ORIGINS 注入，缺省为占位域名
+      CORS_ORIGINS: ${CORS_ORIGINS:-'["https://example.com","https://www.example.com","http://localhost:3000","http://localhost:8001"]'}
       # ── 多用户认证 ──
       SINGLE_USER_MODE: "false"
       SECRET_KEY: ${SECRET_KEY}

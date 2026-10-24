@@ -17,7 +17,8 @@ services:
       retries: 5
 
   backend:
-    image: registry.example.com/captureos/captureos-backend:${BACKEND_TAG:-latest}
+    # 镜像地址：占位仓库，实际地址通过环境变量 ACR_REGISTRY 注入（见 push.sh）
+    image: ${ACR_REGISTRY:-registry.example.com}/captureos/captureos-backend:${BACKEND_TAG:-latest}
     ports:
       - "8001:8000"
     environment:
@@ -41,7 +42,7 @@ services:
           cpus: "0.5"
 
   frontend:
-    image: registry.example.com/captureos/captureos-frontend:${FRONTEND_TAG:-latest}
+    image: ${ACR_REGISTRY:-registry.example.com}/captureos/captureos-frontend:${FRONTEND_TAG:-latest}
     ports:
       - "3000:3000"
     environment:

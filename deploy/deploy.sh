@@ -8,6 +8,10 @@ set -e
 
 cd "$(dirname "$0")"
 
+# 载入 .env.prod（DOMAIN 用于输出访问地址）
+set -a; . ./.env.prod; set +a
+DOMAIN="${DOMAIN:-example.com}"
+
 echo "🔄 拉取最新镜像..."
 docker compose --env-file .env.prod -f docker-compose.prod.yml pull
 
@@ -23,5 +27,5 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T \
   backend python -m scripts.create_admin
 
 echo "✅ 部署完成"
-echo "   前端: https://example.com"
-echo "   后端健康检查: https://example.com/health"
+echo "   前端: https://${DOMAIN}"
+echo "   后端健康检查: https://${DOMAIN}/health"

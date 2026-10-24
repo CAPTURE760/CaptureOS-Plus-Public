@@ -71,7 +71,7 @@ docker compose exec backend alembic upgrade head
 - **Docker 匿名卷** `/app/.next` 不要移除，否则编译缓存失效
 - **Docker 匿名卷** `/app/node_modules` 同理
 - **uploads 目录** 已在 .gitignore 排除，不进入镜像和仓库
-- **ACR 镜像仓库**：`registry.example.com/captureos/`
+- **ACR 镜像仓库**：`registry.example.com/captureos（占位，实际地址在本地 .env 的 ACR_REGISTRY）`
 - **npm 镜像**：Dockerfile 中使用淘宝 npmmirror，pip 使用阿里云镜像
 
 ## API 路由总览

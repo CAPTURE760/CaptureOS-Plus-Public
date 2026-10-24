@@ -10,7 +10,7 @@
 
 > 一个全栈个人知识与资产管理平台，帮助你系统化地记录、关联、管理和复盘工作与学习中的各类信息。支持一键 Docker Compose 部署，开箱即用。
 >
-> 两套运行环境：**本地单用户模式**（免登录，开箱即用）与 **公网多用户模式**（登录 + 图片验证码 + 数据隔离）。公网访问地址：<https://example.com>（部署细节见 [公网部署](#deploy-production) 与 [`deploy/README.md`](deploy/README.md)）。
+> 两套运行环境：**本地单用户模式**（免登录，开箱即用）与 **公网多用户模式**（登录 + 图片验证码 + 数据隔离）。公网访问地址：`https://<你的域名>`（部署细节见 [公网部署](#deploy-production) 与 [`deploy/README.md`](deploy/README.md)）。
 
 ---
 
@@ -401,7 +401,7 @@ http://192.168.x.x:3000
   ↓ https://example.com
 Cloudflare（HTTPS 终端，SSL/TLS = Flexible）
   ↓ http（回源到源站 80）
-宿主机 nginx（/etc/nginx/conf.d/example.com.conf）
+宿主机 nginx（/etc/nginx/conf.d/captureos.conf）
   ├── /api/          → 127.0.0.1:8000（FastAPI backend 容器）
   ├── /health        → 127.0.0.1:8000/health
   ├── /uploads/      → 127.0.0.1:8000（附件静态文件）
@@ -424,7 +424,7 @@ Cloudflare（HTTPS 终端，SSL/TLS = Flexible）
 | `deploy/docker-compose.prod.yml` | ACR 镜像版（`image: ${BACKEND_IMAGE}`），配 `deploy.sh` | ✅ |
 | `deploy/.env.prod.example` | 生产变量模板 | ✅ |
 | `deploy/.env.prod` | 真实密码、`SECRET_KEY`、管理员账号 | ❌ git 忽略 |
-| `deploy/nginx/example.com.conf` | 宿主机 nginx 站点配置模板 | ✅ |
+| `deploy/nginx/captureos.conf` | 宿主机 nginx 站点配置模板 | ✅ |
 | `deploy/init.sh` | 首次部署（启动 → 迁移 → 建管理员 → 装 nginx 配置） | ✅ |
 | `deploy/deploy.sh` | ACR 路径的日常更新（pull → 重启 → 迁移） | ✅ |
 | `deploy/scripts/backup.sh` | 生产备份脚本（挂载进 backup 容器） | ✅ |
@@ -449,11 +449,10 @@ Cloudflare（HTTPS 终端，SSL/TLS = Flexible）
 1. 域名 `example.com` 托管在 Cloudflare，`A` 记录指向服务器公网 IP，代理状态开启（橙色云朵）。
 2. Cloudflare **SSL/TLS → Flexible**：用户到 Cloudflare 走 HTTPS，Cloudflare 回源到 80 走 HTTP。
 3. 源站只需放行 80 和 SSH；443 留给服务器上已有服务。
-4. nginx 配置生效：
+4. nginx 配置由 `init.sh` 按 `.env.prod` 的 `DOMAIN` 自动生成（模板 `deploy/nginx/captureos.conf` 中是占位域名）：
 
 ```bash
-cp deploy/nginx/example.com.conf /etc/nginx/conf.d/example.com.conf
-nginx -t && systemctl reload nginx
+./init.sh   # 内部执行: sed 替换模板中的占位域名 → /etc/nginx/conf.d/captureos.conf → nginx -t && reload
 ```
 
 > 备注：若以后改用标准 443（例如让占用 443 的服务做 SNI 分流），需要同时调整 Cloudflare 模式与源站证书；当前方案对已有服务零侵入，是成本最低的选择。
@@ -463,10 +462,12 @@ nginx -t && systemctl reload nginx
 `deploy/.env.prod` 至少包含：
 
 ```bash
+DOMAIN=example.com            # 你的域名，init.sh 用它生成 nginx 配置
 POSTGRES_PASSWORD=强密码
 SECRET_KEY=至少32位随机字符串
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=管理员强密码
+CORS_ORIGINS='["https://example.com","https://www.example.com"]'
 # 使用 ACR 镜像时还需要：
 BACKEND_IMAGE=<your-registry>/captureos-backend:latest
 FRONTEND_IMAGE=<your-registry>/captureos-frontend:latest
@@ -666,7 +667,7 @@ CaptureOS-plus/
 │   ├── docker-compose.prod.yml       # ACR 镜像版
 │   ├── .env.prod.example             # 生产变量模板（.env.prod 不入库）
 │   ├── init.sh / deploy.sh           # 首次部署 / 日常更新
-│   ├── nginx/example.com.conf       # 宿主机 nginx 反代配置
+│   ├── nginx/captureos.conf       # 宿主机 nginx 反代配置
 │   └── scripts/backup.sh             # 生产备份脚本
 ├── docker-compose.yml              # 源码构建配置（含 backup sidecar）
 ├── docker-compose.pull.yml         # 预构建镜像配置

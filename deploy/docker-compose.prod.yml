@@ -2,7 +2,7 @@
 # 架构: Cloudflare(HTTPS) → 宿主机 nginx(80) → 127.0.0.1:3003(frontend) / 127.0.0.1:8000(backend) → db(5432)
 # 前端后端仅绑定回环地址 127.0.0.1，不暴露公网，统一经宿主机 nginx 反代（同源，无需配 CORS）
 # HTTPS 由 Cloudflare 提供（Flexible 模式），源站 nginx 仅监听 80 端口
-# 注意: frontend 用 3003 端口而非 3000，避免与服务器上 已有监控服务(127.0.0.1:3000) 冲突
+# 注意: frontend 用 3003 端口而非 3000，避免与服务器上 服务器上已有服务(127.0.0.1:3000) 冲突
 #
 # 用法:
 #   首次:  按 README 步骤放置宿主机 nginx 配置后执行 ./init.sh
@@ -38,8 +38,8 @@ services:
       DATABASE_URL_SYNC: postgresql+psycopg2://captureos:${POSTGRES_PASSWORD}@db:5432/captureos
       APP_NAME: CaptureOS
       DEBUG: "false"
-      # 同源部署，CORS 基本用不上，仍放行域名与本地备用
-      CORS_ORIGINS: '["https://example.com","https://www.example.com","http://localhost:3000","http://localhost:8001"]'
+      # 同源部署，CORS 基本用不上；域名从 .env.prod 的 CORS_ORIGINS 注入，缺省为占位域名
+      CORS_ORIGINS: ${CORS_ORIGINS:-'["https://example.com","https://www.example.com","http://localhost:3000","http://localhost:8001"]'}
       # ── 多用户认证 ──
       SINGLE_USER_MODE: "false"
       SECRET_KEY: ${SECRET_KEY}
@@ -61,7 +61,7 @@ services:
   frontend:
     image: ${FRONTEND_IMAGE}
     # 仅绑定回环地址，宿主机 nginx 反代到 127.0.0.1:3003
-    # 用 3003 而非 3000，避免与服务器 已有监控服务(127.0.0.1:3000) 冲突
+    # 用 3003 而非 3000，避免与服务器 服务器上已有服务(127.0.0.1:3000) 冲突
     ports:
       - "127.0.0.1:3003:3000"
     environment:

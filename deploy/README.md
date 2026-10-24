@@ -31,8 +31,8 @@ Cloudflare (HTTPS 终端, Flexible 模式)
 |---|---|---|
 | `docker-compose.build.yml` | **服务器当前实际使用**：源码构建版 Compose（db + backend + frontend + certbot + backup，**不含 nginx**） | ✅ |
 | `docker-compose.prod.yml` | ACR 镜像版 Compose（`image: ${BACKEND_IMAGE}`），配 `deploy.sh` 使用 | ✅ |
-| `nginx/example.com.conf` | 宿主机 nginx 反代配置（HTTP:80，Cloudflare 回源用） | ✅ |
-| `nginx/example.com.acme.conf` | 【备用】直接 HTTPS 方案的 ACME 临时配置 | ✅ |
+| `nginx/captureos.conf` | 宿主机 nginx 反代配置（HTTP:80，Cloudflare 回源用） | ✅ |
+| `nginx/captureos.acme.conf` | 【备用】直接 HTTPS 方案的 ACME 临时配置 | ✅ |
 | `nginx/default.conf` | 【已废弃】原 docker nginx 容器配置 | ✅ |
 | `.env.prod.example` | 生产环境变量模板 | ✅ |
 | `.env.prod` | 实际生产环境变量（密码等） | ❌ git 忽略 |
