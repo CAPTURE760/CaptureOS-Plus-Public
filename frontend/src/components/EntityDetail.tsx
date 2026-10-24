@@ -31,6 +31,17 @@ interface RelationType {
   reverse_name: string | null;
 }
 
+// 实体类型 → 列表页路由（knowledge 是单数路由，不能用 +s 推导）
+const LIST_PATHS: Record<string, string> = {
+  project: 'projects',
+  experience: 'experiences',
+  issue: 'issues',
+  solution: 'solutions',
+  knowledge: 'knowledge',
+  decision: 'decisions',
+  review: 'reviews',
+};
+
 interface Relation {
   relation_id: number;
   source_type: string;
@@ -271,7 +282,7 @@ export default function EntityDetail({
       <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-6">
         <a href="/" className="hover:text-blue-600 dark:hover:text-blue-400">首页</a>
         <span>/</span>
-        <a href={`/${entityType === 'issue' ? 'issues' : entityType === 'experience' ? 'experiences' : entityType + 's'}`}
+        <a href={`/${LIST_PATHS[entityType] || entityType + 's'}`}
           className="hover:text-blue-600 dark:hover:text-blue-400">
           {ENTITY_ICONS[entityType]} {ENTITY_LABELS[entityType]}
         </a>

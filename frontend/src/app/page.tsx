@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useRef } from 'react';
 import useSWR from 'swr';
-import { fetchAPI } from '@/lib/api';
+import { fetchAPI, authHeaders } from '@/lib/api';
 import { formatBeijingTime } from '@/lib/time';
 import ExportButton from '@/components/ExportButton';
 import Loading from '@/components/Loading';
@@ -116,7 +116,7 @@ export default function DashboardPage() {
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
       const res = await fetch(`${API_BASE}/import/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: text,
       });
       if (!res.ok) throw new Error('导入失败');

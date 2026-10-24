@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { useSWRConfig } from 'swr';
-import { fetchAPI } from '@/lib/api';
+import { fetchAPI, authHeaders } from '@/lib/api';
 import { formatBeijingTime } from '@/lib/time';
 import ExportButton from '@/components/ExportButton';
 import EntityList from '@/components/EntityList';
@@ -185,7 +185,7 @@ export default function KnowledgePage() {
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
       const res = await fetch(`${API_BASE}/export/word/knowledge/selected`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ ids: Array.from(selectedIds) }),
       });
       if (!res.ok) throw new Error('导出失败');

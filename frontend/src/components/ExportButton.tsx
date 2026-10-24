@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useToast } from './Toast';
+import { authHeaders } from '@/lib/api';
 
 const ENTITY_OPTIONS = [
   { key: 'projects', label: '📁 项目', icon: '📁' },
@@ -71,7 +72,7 @@ export default function ExportButton({ entityType, variant = 'small', className 
         filename = `captureos-export-${today}.docx`;
       }
 
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: authHeaders() });
       if (!res.ok) throw new Error('导出失败');
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);

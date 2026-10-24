@@ -26,6 +26,14 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+/** 生成带 Authorization 的请求头（给未走 fetchAPI 的裸 fetch 用：导出/导入等文件操作） */
+export function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
 // ── 认证模式（运行时从后端获取，不能用 NEXT_PUBLIC_ 构建期变量）──
 let authConfigCache: { single_user_mode: boolean } | null = null;
 let authConfigPromise: Promise<{ single_user_mode: boolean }> | null = null;
