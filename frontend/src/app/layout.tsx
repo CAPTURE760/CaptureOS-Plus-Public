@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Sidebar from '@/components/Sidebar';
+import AppShell from '@/components/AppShell';
 import Providers from '@/components/Providers';
 import { ConfirmProvider } from '@/components/ConfirmDialog';
 import { ToastProvider } from '@/components/Toast';
@@ -32,10 +32,7 @@ export default function RootLayout({
         <Providers>
           <ToastProvider>
             <ConfirmProvider>
-              <div className="flex h-screen">
-                <Sidebar />
-                <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
-              </div>
+              <AppShell>{children}</AppShell>
             </ConfirmProvider>
           </ToastProvider>
         </Providers>

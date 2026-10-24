@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { fetchAPI } from '@/lib/api';
+import { fetchAPI, clearToken, SINGLE_USER_MODE } from '@/lib/api';
 import {
   entityTypeLabels as entityLabels,
   entityTypeColors as entityColors,
@@ -150,6 +150,11 @@ export default function Sidebar() {
     setOpen(false);
   }, [pathname]);
 
+  const handleLogout = () => {
+    clearToken();
+    router.push('/login');
+  };
+
   return (
     <>
       {/* 汉堡按钮 — 仅手机端显示 */}
@@ -279,14 +284,22 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* 主题切换 */}
-        <div className="p-4 border-t border-gray-700">
+        {/* 主题切换 + 退出登录 */}
+        <div className="p-4 border-t border-gray-700 space-y-1">
           <button
             onClick={toggleTheme}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
           >
             {isDark === null ? '🌓 主题切换' : isDark ? '☀️ 切换亮色' : '🌙 切换暗色'}
           </button>
+          {!SINGLE_USER_MODE && (
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-red-600 hover:text-white transition-colors"
+            >
+              🚪 退出登录
+            </button>
+          )}
         </div>
       </aside>
     </>
