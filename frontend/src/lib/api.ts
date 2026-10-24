@@ -67,8 +67,8 @@ export async function fetchAPI<T>(path: string, options?: RequestInit): Promise<
   }
 
   const res = await fetch(url, {
-    headers,
     ...options,
+    headers,
   });
 
   // 401：清除 token 并跳转登录页
