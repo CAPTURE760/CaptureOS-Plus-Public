@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://captureos:captureos@db:5432/captureos"
-    DATABASE_URL_SYNC: str = "postgresql://captureos:captureos@db:5432/captureos"
+    DATABASE_URL_SYNC: str = "postgresql+psycopg2://captureos:captureos@db:5432/captureos"
     API_PREFIX: str = "/api"
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",

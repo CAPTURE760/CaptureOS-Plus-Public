@@ -1,7 +1,8 @@
 # 生产环境 Compose（公网服务器用，与本地 docker-compose.yml 完全独立）
-# 架构: 宿主机 nginx(80/443) → 127.0.0.1:3000(frontend) / 127.0.0.1:8000(backend) → db(5432)
+# 架构: Cloudflare(HTTPS) → 宿主机 nginx(80) → 127.0.0.1:3003(frontend) / 127.0.0.1:8000(backend) → db(5432)
 # 前端后端仅绑定回环地址 127.0.0.1，不暴露公网，统一经宿主机 nginx 反代（同源，无需配 CORS）
-# HTTPS 证书由 certbot 容器签发并绑定挂载到宿主机 ./certs，供宿主机 nginx 读取
+# HTTPS 由 Cloudflare 提供（Flexible 模式），源站 nginx 仅监听 80 端口
+# 注意: frontend 用 3003 端口而非 3000，避免与服务器上 已有监控服务(127.0.0.1:3000) 冲突
 #
 # 用法:
 #   首次:  按 README 步骤放置宿主机 nginx 配置后执行 ./init.sh
@@ -52,9 +53,10 @@ services:
 
   frontend:
     image: ${FRONTEND_IMAGE}
-    # 仅绑定回环地址，宿主机 nginx 反代到 127.0.0.1:3000
+    # 仅绑定回环地址，宿主机 nginx 反代到 127.0.0.1:3003
+    # 用 3003 而非 3000，避免与服务器 已有监控服务(127.0.0.1:3000) 冲突
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3003:3000"
     environment:
       # 同源部署，浏览器用相对路径调后端
       NEXT_PUBLIC_API_URL: /api
