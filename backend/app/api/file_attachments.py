@@ -2,7 +2,9 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
+from app.auth.deps import get_current_user
 from app.models import FileAttachment, ENTITY_TYPES
+from app.models.user import User
 
 router = APIRouter(prefix="/file-attachments", tags=["file-attachments"])
 
@@ -11,7 +13,8 @@ router = APIRouter(prefix="/file-attachments", tags=["file-attachments"])
 async def get_entity_files(
     entity_type: str,
     entity_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """获取指定实体的所有文件附件"""
     if entity_type not in ENTITY_TYPES:
@@ -32,7 +35,8 @@ async def get_entity_files(
 @router.delete("/{file_id}")
 async def delete_file(
     file_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """删除文件附件（软删除）"""
     result = await db.execute(
@@ -55,7 +59,8 @@ async def delete_file(
 @router.get("/{file_id}")
 async def get_file_info(
     file_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """获取文件附件信息"""
     result = await db.execute(

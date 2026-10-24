@@ -7,7 +7,9 @@ from fastapi import APIRouter, HTTPException, Request, UploadFile, Depends, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.auth.deps import get_current_user
 from app.models import FileAttachment
+from app.models.user import User
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
@@ -85,7 +87,8 @@ async def upload_to_entity(
     request: Request,
     entity_type: str = Form(..., description="实体类型"),
     entity_id: int = Form(..., description="实体ID"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """上传文件并关联到指定实体"""
     if not file.filename:
@@ -145,7 +148,11 @@ async def upload_to_entity(
 
 
 @router.post("/")
-async def upload_file(file: UploadFile, request: Request):
+async def upload_file(
+    file: UploadFile,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
     """上传文件，返回文件信息（不关联实体）。"""
     if not file.filename:
         raise HTTPException(status_code=400, detail="文件名为空")

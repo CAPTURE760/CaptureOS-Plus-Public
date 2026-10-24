@@ -4,7 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.base import create_crud_router
 from app.api.deps import get_db
 from app.api.entity_relations import get_related_entities
+from app.auth.deps import get_current_user
 from app.models.project import Project
+from app.models.user import User
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
 
 router = create_crud_router(
@@ -18,6 +20,10 @@ router = create_crud_router(
 
 
 @router.get("/{item_id}/related")
-async def get_project_related(item_id: int, db: AsyncSession = Depends(get_db)):
+async def get_project_related(
+    item_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """获取项目的所有关联实体。"""
     return await get_related_entities("project", item_id, db)

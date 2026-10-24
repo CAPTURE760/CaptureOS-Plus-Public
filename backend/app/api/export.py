@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.auth.deps import get_current_user
 from app.models import (
     Project,
     Experience,
@@ -23,6 +24,7 @@ from app.models import (
     RelationType,
 )
 from app.models.file_attachment import FileAttachment
+from app.models.user import User
 
 router = APIRouter(prefix="/export", tags=["export"])
 
@@ -40,8 +42,11 @@ def _serialize_row(row: Any) -> dict:
     return d
 
 
-async def _fetch_all(db: AsyncSession, model) -> list[dict]:
-    result = await db.execute(select(model))
+async def _fetch_all(db: AsyncSession, model, user_id: int) -> list[dict]:
+    query = select(model)
+    if hasattr(model, "user_id"):
+        query = query.where(model.user_id == user_id)
+    result = await db.execute(query)
     return [_serialize_row(r) for r in result.scalars().all()]
 
 
@@ -61,8 +66,10 @@ ENTITY_MODULES = {
 async def export_all(
     types: str | None = Query(None, description="逗号分隔的模块键，如 projects,issues；不传=全量"),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """导出数据为 JSON 文件下载。types 指定时只导所选模块，关联表按所选模块过滤。"""
+    uid = current_user.id
     if types:
         keys = [t.strip() for t in types.split(",") if t.strip()]
         invalid = [k for k in keys if k not in ENTITY_MODULES]
@@ -77,36 +84,36 @@ async def export_all(
 
         # 所选实体模块
         data: dict[str, Any] = {
-            key: await _fetch_all(db, ENTITY_MODULES[key]) for key in ENTITY_MODULES if key in selected
+            key: await _fetch_all(db, ENTITY_MODULES[key], uid) for key in ENTITY_MODULES if key in selected
         }
         # 全局表（标签/关系类型）始终带上，导入端依赖
-        data["tags"] = await _fetch_all(db, Tag)
-        data["relation_types"] = await _fetch_all(db, RelationType)
+        data["tags"] = await _fetch_all(db, Tag, uid)
+        data["relation_types"] = await _fetch_all(db, RelationType, uid)
         # 多态关联表：只保留指向所选模块的行，避免导入孤儿数据
         data["entity_tags"] = [
-            r for r in await _fetch_all(db, EntityTag) if r["entity_type"] in selected
+            r for r in await _fetch_all(db, EntityTag, uid) if r["entity_type"] in selected
         ]
         data["relations"] = [
-            r for r in await _fetch_all(db, Relation)
+            r for r in await _fetch_all(db, Relation, uid)
             if r["source_type"] in selected and r["target_type"] in selected
         ]
         data["file_attachments"] = [
-            r for r in await _fetch_all(db, FileAttachment) if r["entity_type"] in selected
+            r for r in await _fetch_all(db, FileAttachment, uid) if r["entity_type"] in selected
         ]
     else:
         data = {
-            "projects": await _fetch_all(db, Project),
-            "experiences": await _fetch_all(db, Experience),
-            "issues": await _fetch_all(db, Issue),
-            "solutions": await _fetch_all(db, Solution),
-            "knowledge": await _fetch_all(db, Knowledge),
-            "decisions": await _fetch_all(db, Decision),
-            "reviews": await _fetch_all(db, Review),
-            "tags": await _fetch_all(db, Tag),
-            "entity_tags": await _fetch_all(db, EntityTag),
-            "relation_types": await _fetch_all(db, RelationType),
-            "relations": await _fetch_all(db, Relation),
-            "file_attachments": await _fetch_all(db, FileAttachment),
+            "projects": await _fetch_all(db, Project, uid),
+            "experiences": await _fetch_all(db, Experience, uid),
+            "issues": await _fetch_all(db, Issue, uid),
+            "solutions": await _fetch_all(db, Solution, uid),
+            "knowledge": await _fetch_all(db, Knowledge, uid),
+            "decisions": await _fetch_all(db, Decision, uid),
+            "reviews": await _fetch_all(db, Review, uid),
+            "tags": await _fetch_all(db, Tag, uid),
+            "entity_tags": await _fetch_all(db, EntityTag, uid),
+            "relation_types": await _fetch_all(db, RelationType, uid),
+            "relations": await _fetch_all(db, Relation, uid),
+            "file_attachments": await _fetch_all(db, FileAttachment, uid),
         }
 
     payload = {

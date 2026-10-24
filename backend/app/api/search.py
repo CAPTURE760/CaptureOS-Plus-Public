@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.api.timeline import _get_min_date
+from app.auth.deps import get_current_user
 from app.models.decision import Decision
 from app.models.experience import Experience
 from app.models.issue import Issue
@@ -14,6 +15,7 @@ from app.models.project import Project
 from app.models.review import Review
 from app.models.solution import Solution
 from app.models.tag import EntityTag
+from app.models.user import User
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -39,6 +41,7 @@ async def search(
     limit: int = Query(20, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     results = []
     type_counts: dict[str, int] = {}
@@ -55,7 +58,7 @@ async def search(
         if entity_type and etype != entity_type:
             continue
 
-        conditions = []
+        conditions = [model.user_id == current_user.id]
         if q:
             # 有关键词：ILIKE 子串匹配
             conditions.append(or_(*[field.ilike(f"%{q}%") for field in search_fields]))

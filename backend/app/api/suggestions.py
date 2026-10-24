@@ -8,8 +8,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.auth.deps import get_current_user
 from app.models import ENTITY_TYPES
 from app.models.tag import EntityTag, Tag
+from app.models.user import User
 
 router = APIRouter(prefix="/suggestions", tags=["suggestions"])
 
@@ -45,6 +47,7 @@ async def get_suggestions(
     entity_id: int,
     limit: int = 10,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """为指定实体推荐可能关联的其他实体（基于共享标签）。
 

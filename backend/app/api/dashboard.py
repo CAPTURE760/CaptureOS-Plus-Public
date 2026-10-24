@@ -6,6 +6,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.auth.deps import get_current_user
 from app.models.decision import Decision
 from app.models.experience import Experience
 from app.models.issue import Issue
@@ -14,22 +15,35 @@ from app.models.project import Project
 from app.models.relation import Relation
 from app.models.review import Review
 from app.models.solution import Solution
+from app.models.user import User
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 @router.get("/counts")
-async def get_counts(db: AsyncSession = Depends(get_db)):
+async def get_counts(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """轻量端点：只返回侧边栏角标需要的 3 个数字。"""
     # 使用单个会话顺序执行（这些查询很快）
     issues_result = await db.execute(
-        select(func.count(Issue.id)).where(Issue.status.in_(["open", "in_progress"]))
+        select(func.count(Issue.id)).where(
+            Issue.user_id == current_user.id,
+            Issue.status.in_(["open", "in_progress"]),
+        )
     )
     decisions_result = await db.execute(
-        select(func.count(Decision.id)).where(Decision.status == "pending")
+        select(func.count(Decision.id)).where(
+            Decision.user_id == current_user.id,
+            Decision.status == "pending",
+        )
     )
     knowledge_result = await db.execute(
-        select(func.count(Knowledge.id)).where(Knowledge.status == "unverified")
+        select(func.count(Knowledge.id)).where(
+            Knowledge.user_id == current_user.id,
+            Knowledge.status == "unverified",
+        )
     )
     return {
         "issues": issues_result.scalar() or 0,
@@ -39,15 +53,19 @@ async def get_counts(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/")
-async def get_dashboard(db: AsyncSession = Depends(get_db)):
+async def get_dashboard(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     now = datetime.now(timezone.utc)
     seven_days_ago = now - timedelta(days=7)
+    uid = current_user.id
 
     # ── 待处理 ──
     # 待解决问题 (open + in_progress)
     result = await db.execute(
         select(Issue)
-        .where(Issue.status.in_(["open", "in_progress"]))
+        .where(Issue.user_id == uid, Issue.status.in_(["open", "in_progress"]))
         .order_by(Issue.created_at.desc())
         .limit(10)
     )
@@ -60,7 +78,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
     # 待执行决策
     result = await db.execute(
         select(Decision)
-        .where(Decision.status == "pending")
+        .where(Decision.user_id == uid, Decision.status == "pending")
         .order_by(Decision.created_at.desc())
         .limit(10)
     )
@@ -72,7 +90,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
     # 待确认知识
     result = await db.execute(
         select(Knowledge)
-        .where(Knowledge.status == "unverified")
+        .where(Knowledge.user_id == uid, Knowledge.status == "unverified")
         .order_by(Knowledge.created_at.desc())
         .limit(10)
     )
@@ -87,7 +105,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
     # 问题没有解决方案 (open 问题且没有 solved_by 关系)
     result = await db.execute(
         select(Issue.id)
-        .where(Issue.status.in_(["open", "in_progress"]))
+        .where(Issue.user_id == uid, Issue.status.in_(["open", "in_progress"]))
     )
     open_issue_ids = [row[0] for row in result.all()]
 
@@ -119,6 +137,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Project)
         .where(
+            Project.user_id == uid,
             Project.status == "active",
             Project.updated_at < seven_days_ago,
         )
@@ -139,7 +158,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
     # 知识没有来源
     result = await db.execute(
         select(Knowledge)
-        .where(or_(Knowledge.source == None, Knowledge.source == ""))  # noqa: E711
+        .where(Knowledge.user_id == uid, or_(Knowledge.source == None, Knowledge.source == ""))  # noqa: E711
         .order_by(Knowledge.created_at.desc())
         .limit(5)
     )
@@ -158,22 +177,30 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
     overview = {}
 
     result = await db.execute(
-        select(Issue.status, func.count(Issue.id)).group_by(Issue.status)
+        select(Issue.status, func.count(Issue.id))
+        .where(Issue.user_id == uid)
+        .group_by(Issue.status)
     )
     overview["issues"] = {row[0]: row[1] for row in result.all()}
 
     result = await db.execute(
-        select(Project.status, func.count(Project.id)).group_by(Project.status)
+        select(Project.status, func.count(Project.id))
+        .where(Project.user_id == uid)
+        .group_by(Project.status)
     )
     overview["projects"] = {row[0]: row[1] for row in result.all()}
 
     result = await db.execute(
-        select(Knowledge.status, func.count(Knowledge.id)).group_by(Knowledge.status)
+        select(Knowledge.status, func.count(Knowledge.id))
+        .where(Knowledge.user_id == uid)
+        .group_by(Knowledge.status)
     )
     overview["knowledge"] = {row[0]: row[1] for row in result.all()}
 
     result = await db.execute(
-        select(Decision.status, func.count(Decision.id)).group_by(Decision.status)
+        select(Decision.status, func.count(Decision.id))
+        .where(Decision.user_id == uid)
+        .group_by(Decision.status)
     )
     overview["decisions"] = {row[0]: row[1] for row in result.all()}
 
@@ -192,7 +219,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
 
     for etype, icon, model, date_field in entity_configs:
         result = await db.execute(
-            select(model).order_by(date_field.desc()).limit(3)
+            select(model).where(model.user_id == uid).order_by(date_field.desc()).limit(3)
         )
         for item in result.scalars().all():
             activity.append({

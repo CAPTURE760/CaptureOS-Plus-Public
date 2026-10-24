@@ -4,7 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_db
+from app.auth.deps import get_current_user
 from app.models.relation import Relation, RelationType
+from app.models.user import User
 from app.schemas.relation import (
     RelationCreate,
     RelationResponse,
@@ -18,13 +20,20 @@ router = APIRouter(prefix="/relations", tags=["relations"])
 
 # Relation Types
 @router.get("/types/", response_model=list[RelationTypeResponse])
-async def list_relation_types(db: AsyncSession = Depends(get_db)):
+async def list_relation_types(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     result = await db.execute(select(RelationType))
     return result.scalars().all()
 
 
 @router.post("/types/", response_model=RelationTypeResponse, status_code=201)
-async def create_relation_type(data: RelationTypeCreate, db: AsyncSession = Depends(get_db)):
+async def create_relation_type(
+    data: RelationTypeCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     db_type = RelationType(**data.model_dump())
     db.add(db_type)
     await db.flush()
@@ -40,6 +49,7 @@ async def list_relations(
     target_type: str | None = None,
     target_id: int | None = None,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     query = select(Relation).options(selectinload(Relation.relation_type))
     if source_type:
@@ -55,7 +65,11 @@ async def list_relations(
 
 
 @router.post("/", response_model=RelationResponse, status_code=201)
-async def create_relation(data: RelationCreate, db: AsyncSession = Depends(get_db)):
+async def create_relation(
+    data: RelationCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     db_relation = Relation(**data.model_dump())
     db.add(db_relation)
     await db.flush()
@@ -64,7 +78,11 @@ async def create_relation(data: RelationCreate, db: AsyncSession = Depends(get_d
 
 
 @router.delete("/{relation_id}", status_code=204)
-async def delete_relation(relation_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_relation(
+    relation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     result = await db.execute(select(Relation).where(Relation.id == relation_id))
     db_relation = result.scalar_one_or_none()
     if db_relation is None:

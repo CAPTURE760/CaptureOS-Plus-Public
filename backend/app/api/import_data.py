@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.auth.deps import get_current_user
 from app.models import (
     Project,
     Experience,
@@ -22,6 +23,7 @@ from app.models import (
     RelationType,
 )
 from app.models.file_attachment import FileAttachment
+from app.models.user import User
 
 router = APIRouter(prefix="/import", tags=["import"])
 
@@ -115,19 +117,24 @@ def _strip_auto_fields(row: dict) -> dict:
     """移除数据库自动生成的字段，只保留用户数据。"""
     return {
         k: v for k, v in row.items()
-        if k not in ("id", "created_at", "updated_at")
+        if k not in ("id", "created_at", "updated_at", "user_id")
     }
 
 
-async def _get_existing_titles(db: AsyncSession, model, title_field: str = "title") -> set[str]:
-    """获取表中已有的所有 title，用于去重。"""
-    result = await db.execute(select(getattr(model, title_field)))
+async def _get_existing_titles(
+    db: AsyncSession, model, user_id: int, title_field: str = "title"
+) -> set[str]:
+    """获取当前用户表中已有的所有 title，用于去重。"""
+    query = select(getattr(model, title_field))
+    if hasattr(model, "user_id"):
+        query = query.where(model.user_id == user_id)
+    result = await db.execute(query)
     return {row[0] for row in result.all()}
 
 
-async def _get_existing_names(db: AsyncSession) -> set[str]:
-    """获取已有标签名称。"""
-    result = await db.execute(select(Tag.name))
+async def _get_existing_names(db: AsyncSession, user_id: int) -> set[str]:
+    """获取当前用户已有标签名称。"""
+    result = await db.execute(select(Tag.name).where(Tag.user_id == user_id))
     return {row[0] for row in result.all()}
 
 
@@ -141,6 +148,7 @@ async def _get_existing_relation_type_names(db: AsyncSession) -> set[str]:
 async def import_data(
     payload: dict[str, Any],
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> ImportResult:
     """导入 JSON 数据，跳过重复项。
 
@@ -150,6 +158,7 @@ async def import_data(
     可能与数据库已有 ID 冲突。
     """
     data = payload.get("data", {})
+    uid = current_user.id
     errors: list[str] = []
     imported: dict[str, int] = {}
     skipped: dict[str, int] = {}
@@ -187,7 +196,7 @@ async def import_data(
     }
 
     # --- 1. 导入 tags ---
-    existing_tag_names = await _get_existing_names(db)
+    existing_tag_names = await _get_existing_names(db, uid)
     tag_imported, tag_skipped = 0, 0
     for item in data.get("tags", []):
         name = item.get("name", "")
@@ -201,6 +210,7 @@ async def import_data(
             level=item.get("level", 1),
             description=item.get("description"),
             is_active=item.get("is_active", True),
+            user_id=uid,
         )
         db.add(db_item)
         await db.flush()
@@ -248,7 +258,7 @@ async def import_data(
     }
     for entity_key, (model, title_field) in entity_models.items():
         try:
-            existing_titles = await _get_existing_titles(db, model, title_field)
+            existing_titles = await _get_existing_titles(db, model, uid, title_field)
             items = data.get(entity_key, [])
             ent_imported, ent_skipped = 0, 0
             for item in items:
@@ -262,6 +272,7 @@ async def import_data(
                 for key, val in row_data.items():
                     if isinstance(val, str) and ("date" in key or "Date" in key):
                         row_data[key] = _parse_datetime(val)
+                row_data["user_id"] = uid
                 db_item = model(**row_data)
                 db.add(db_item)
                 await db.flush()

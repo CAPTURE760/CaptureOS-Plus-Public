@@ -3,29 +3,45 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.auth.deps import get_current_user
 from app.models.tag import EntityTag, Tag
+from app.models.user import User
 from app.schemas.tag import EntityTagCreate, EntityTagResponse, TagCreate, TagResponse, TagUpdate
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
 
 @router.get("/", response_model=list[TagResponse])
-async def list_tags(db: AsyncSession = Depends(get_db)):
+async def list_tags(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """只返回活跃的标签"""
-    result = await db.execute(select(Tag).where(Tag.is_active == True))
+    result = await db.execute(
+        select(Tag).where(Tag.user_id == current_user.id, Tag.is_active == True)  # noqa: E712
+    )
     return result.scalars().all()
 
 
 @router.get("/all", response_model=list[TagResponse])
-async def list_all_tags(db: AsyncSession = Depends(get_db)):
+async def list_all_tags(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """返回所有标签（包括已停用的）"""
-    result = await db.execute(select(Tag))
+    result = await db.execute(select(Tag).where(Tag.user_id == current_user.id))
     return result.scalars().all()
 
 
 @router.get("/{tag_id}", response_model=TagResponse)
-async def get_tag(tag_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Tag).where(Tag.id == tag_id))
+async def get_tag(
+    tag_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(Tag).where(Tag.id == tag_id, Tag.user_id == current_user.id)
+    )
     tag = result.scalar_one_or_none()
     if tag is None:
         raise HTTPException(status_code=404, detail="Tag not found")
@@ -33,7 +49,11 @@ async def get_tag(tag_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{tag_id}/entity-count")
-async def get_tag_entity_count(tag_id: int, db: AsyncSession = Depends(get_db)):
+async def get_tag_entity_count(
+    tag_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """获取标签的关联实体数量"""
     result = await db.execute(
         select(func.count(EntityTag.id)).where(EntityTag.tag_id == tag_id)
@@ -43,10 +63,14 @@ async def get_tag_entity_count(tag_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/", response_model=TagResponse, status_code=201)
-async def create_tag(data: TagCreate, db: AsyncSession = Depends(get_db)):
+async def create_tag(
+    data: TagCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     # 检查是否已存在同名标签（包括已停用的）
     existing = await db.execute(
-        select(Tag).where(Tag.name == data.name)
+        select(Tag).where(Tag.user_id == current_user.id, Tag.name == data.name)
     )
     existing_tag = existing.scalar_one_or_none()
 
@@ -60,7 +84,7 @@ async def create_tag(data: TagCreate, db: AsyncSession = Depends(get_db)):
         return existing_tag
 
     # 不存在，创建新标签
-    db_tag = Tag(**data.model_dump())
+    db_tag = Tag(**data.model_dump(), user_id=current_user.id)
     db.add(db_tag)
     await db.flush()
     await db.refresh(db_tag)
@@ -68,8 +92,15 @@ async def create_tag(data: TagCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/{tag_id}", response_model=TagResponse)
-async def update_tag(tag_id: int, data: TagUpdate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Tag).where(Tag.id == tag_id))
+async def update_tag(
+    tag_id: int,
+    data: TagUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(Tag).where(Tag.id == tag_id, Tag.user_id == current_user.id)
+    )
     db_tag = result.scalar_one_or_none()
     if db_tag is None:
         raise HTTPException(status_code=404, detail="Tag not found")
@@ -81,9 +112,15 @@ async def update_tag(tag_id: int, data: TagUpdate, db: AsyncSession = Depends(ge
 
 
 @router.delete("/{tag_id}", status_code=204)
-async def delete_tag(tag_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_tag(
+    tag_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """删除标签：有关联则软删除，无关联则物理删除"""
-    result = await db.execute(select(Tag).where(Tag.id == tag_id))
+    result = await db.execute(
+        select(Tag).where(Tag.id == tag_id, Tag.user_id == current_user.id)
+    )
     db_tag = result.scalar_one_or_none()
     if db_tag is None:
         raise HTTPException(status_code=404, detail="Tag not found")
@@ -104,7 +141,17 @@ async def delete_tag(tag_id: int, db: AsyncSession = Depends(get_db)):
 
 # Entity-Tag relations
 @router.post("/assign", response_model=EntityTagResponse, status_code=201)
-async def assign_tag(data: EntityTagCreate, db: AsyncSession = Depends(get_db)):
+async def assign_tag(
+    data: EntityTagCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # 校验标签归属当前用户
+    tag_result = await db.execute(
+        select(Tag).where(Tag.id == data.tag_id, Tag.user_id == current_user.id)
+    )
+    if tag_result.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
     db_entity_tag = EntityTag(**data.model_dump())
     db.add(db_entity_tag)
     await db.flush()
@@ -113,27 +160,50 @@ async def assign_tag(data: EntityTagCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/entity/{entity_type}", response_model=list[EntityTagResponse])
-async def list_entity_tags_by_type(entity_type: str, db: AsyncSession = Depends(get_db)):
-    """获取某类型所有实体的标签关系"""
+async def list_entity_tags_by_type(
+    entity_type: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """获取某类型所有实体的标签关系（仅当前用户的标签）"""
     result = await db.execute(
-        select(EntityTag).where(EntityTag.entity_type == entity_type)
+        select(EntityTag)
+        .join(Tag, Tag.id == EntityTag.tag_id)
+        .where(EntityTag.entity_type == entity_type, Tag.user_id == current_user.id)
     )
     return result.scalars().all()
 
 
 @router.get("/entity/{entity_type}/{entity_id}", response_model=list[TagResponse])
-async def get_entity_tags(entity_type: str, entity_id: int, db: AsyncSession = Depends(get_db)):
+async def get_entity_tags(
+    entity_type: str,
+    entity_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     result = await db.execute(
         select(Tag)
         .join(EntityTag, EntityTag.tag_id == Tag.id)
-        .where(EntityTag.entity_type == entity_type, EntityTag.entity_id == entity_id)
+        .where(
+            EntityTag.entity_type == entity_type,
+            EntityTag.entity_id == entity_id,
+            Tag.user_id == current_user.id,
+        )
     )
     return result.scalars().all()
 
 
 @router.delete("/unassign/{entity_tag_id}", status_code=204)
-async def unassign_tag(entity_tag_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(EntityTag).where(EntityTag.id == entity_tag_id))
+async def unassign_tag(
+    entity_tag_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(EntityTag)
+        .join(Tag, Tag.id == EntityTag.tag_id)
+        .where(EntityTag.id == entity_tag_id, Tag.user_id == current_user.id)
+    )
     db_entity_tag = result.scalar_one_or_none()
     if db_entity_tag is None:
         raise HTTPException(status_code=404, detail="Entity-tag relation not found")

@@ -7,6 +7,7 @@ from sqlalchemy import Date, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.auth.deps import get_current_user
 from app.models.decision import Decision
 from app.models.experience import Experience
 from app.models.issue import Issue
@@ -15,6 +16,7 @@ from app.models.project import Project
 from app.models.relation import Relation, RelationType
 from app.models.review import Review
 from app.models.solution import Solution
+from app.models.user import User
 
 # 北京时间（created_at 以 UTC 存储，展示/比较统一转上海时区）
 SHANGHAI_TZ = timezone(timedelta(hours=8))
@@ -85,12 +87,16 @@ def _sql_date_condition(model, date_field_name: str, start: date | None, end: da
     return or_(_sql_range_cond(biz_col, start, end), _sql_range_cond(created_date, start, end))
 
 
-async def _get_min_date(db: AsyncSession) -> str | None:
+async def _get_min_date(db: AsyncSession, user_id: int) -> str | None:
     """全部数据的最早日期（业务日期与创建时间取更早者，统一为北京时间日期）。"""
     min_dates: list[date] = []
     for model, date_field_name, _etype in ENTITY_CONFIGS:
-        biz_min = (await db.execute(select(func.min(getattr(model, date_field_name))))).scalar_one()
-        created_min = (await db.execute(select(func.min(model.created_at)))).scalar_one()
+        biz_min = (await db.execute(
+            select(func.min(getattr(model, date_field_name))).where(model.user_id == user_id)
+        )).scalar_one()
+        created_min = (await db.execute(
+            select(func.min(model.created_at)).where(model.user_id == user_id)
+        )).scalar_one()
         # 统一归一化为 date：business 字段可能是 Date 也可能是 created_at（naive datetime，UTC 存储）
         if created_min:
             if created_min.tzinfo is None:
@@ -109,6 +115,7 @@ async def get_timeline(
     limit: int = Query(20, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     events = []
     total = 0
@@ -119,13 +126,11 @@ async def get_timeline(
             continue
 
         # 日期条件下推 SQL（业务日期 OR 北京时间创建日期），在 LIMIT 之前生效
-        conditions = []
+        conditions = [model.user_id == current_user.id]
         if start_date or end_date:
             conditions.append(_sql_date_condition(model, date_field_name, start_date, end_date))
 
-        count_query = select(func.count(model.id))
-        if conditions:
-            count_query = count_query.where(*conditions)
+        count_query = select(func.count(model.id)).where(*conditions)
         type_total = (await db.execute(count_query)).scalar_one()
         total += type_total
 
@@ -138,9 +143,7 @@ async def get_timeline(
         if t_limit <= 0:
             continue
 
-        query = select(model)
-        if conditions:
-            query = query.where(*conditions)
+        query = select(model).where(*conditions)
         # 最新优先；按映射后的区间取数
         query = query.order_by(model.created_at.desc()).offset(t_offset).limit(t_limit)
         result = await db.execute(query)
@@ -167,7 +170,7 @@ async def get_timeline(
     return {
         "events": events,
         "total": total,
-        "min_date": await _get_min_date(db),
+        "min_date": await _get_min_date(db, current_user.id),
     }
 
 
@@ -178,12 +181,13 @@ async def get_timeline_chains(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """链路聚合时间线。范围内实体全量加载后按链分页（保证链不被拆散）。"""
     # 1. 收集实体（按创建时间倒序，只取最近 limit 条；日期条件下推 SQL）
     all_entities: dict[str, dict] = {}
     for model, date_field_name, etype in ENTITY_CONFIGS:
-        query = select(model)
+        query = select(model).where(model.user_id == current_user.id)
         if start_date or end_date:
             query = query.where(_sql_date_condition(model, date_field_name, start_date, end_date))
         # 全量加载：链路聚合依赖完整实体集合，limit 截断会产生残缺链
@@ -281,5 +285,5 @@ async def get_timeline_chains(
     return {
         "chains": chains[start_idx:start_idx + page_size],
         "total": len(chains),
-        "min_date": await _get_min_date(db),
+        "min_date": await _get_min_date(db, current_user.id),
     }

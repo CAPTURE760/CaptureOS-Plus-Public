@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.auth.deps import get_current_user
 from app.models import (
     Project,
     Experience,
@@ -21,6 +22,7 @@ from app.models import (
     Decision,
     Review,
 )
+from app.models.user import User
 
 router = APIRouter(prefix="/export", tags=["export"])
 
@@ -307,13 +309,18 @@ def _build_single_doc(entity_type: str, items: list[dict]) -> Document:
     return doc
 
 
-async def _fetch_all(db: AsyncSession, model) -> list[dict]:
-    result = await db.execute(select(model))
+async def _fetch_all(db: AsyncSession, model, user_id: int) -> list[dict]:
+    query = select(model).where(model.user_id == user_id)
+    result = await db.execute(query)
     return [_serialize_row(r) for r in result.scalars().all()]
 
 
 @router.get("/word/")
-async def export_all_word(types: str = "", db: AsyncSession = Depends(get_db)):
+async def export_all_word(
+    types: str = "",
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """导出数据为 Word 文档。types 参数可选，逗号分隔的实体类型列表。"""
     ALL_TYPES = ["projects", "experiences", "issues", "solutions", "knowledge", "decisions", "reviews"]
     MODEL_MAP_LOCAL = {
@@ -331,9 +338,10 @@ async def export_all_word(types: str = "", db: AsyncSession = Depends(get_db)):
     else:
         selected = ALL_TYPES
 
+    uid = current_user.id
     data = {}
     for t in selected:
-        data[t] = await _fetch_all(db, MODEL_MAP_LOCAL[t])
+        data[t] = await _fetch_all(db, MODEL_MAP_LOCAL[t], uid)
 
     doc = _build_full_doc(data)
 
@@ -362,14 +370,18 @@ MODEL_MAP = {
 
 
 @router.get("/word/{entity_type}")
-async def export_entity_word(entity_type: str, db: AsyncSession = Depends(get_db)):
+async def export_entity_word(
+    entity_type: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """导出单个模块全部数据为 Word 文档。"""
     model = MODEL_MAP.get(entity_type)
     if not model:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=f"未知实体类型: {entity_type}")
 
-    items = await _fetch_all(db, model)
+    items = await _fetch_all(db, model, current_user.id)
     doc = _build_single_doc(entity_type, items)
 
     import io
@@ -390,6 +402,7 @@ async def export_selected_word(
     entity_type: str,
     payload: dict,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """导出选中的记录为 Word 文档。"""
     from fastapi import HTTPException
@@ -403,7 +416,9 @@ async def export_selected_word(
     if not ids:
         raise HTTPException(status_code=400, detail="请选择要导出的记录")
 
-    result = await db.execute(sel(model).where(model.id.in_(ids)))
+    result = await db.execute(
+        sel(model).where(model.id.in_(ids), model.user_id == current_user.id)
+    )
     items = [_serialize_row(r) for r in result.scalars().all()]
 
     if not items:

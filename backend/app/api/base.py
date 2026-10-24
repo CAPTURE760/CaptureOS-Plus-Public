@@ -1,4 +1,4 @@
-"""Generic CRUD router factory."""
+"""Generic CRUD router factory with per-user data isolation."""
 import os
 from typing import Sequence, Type, TypeVar
 
@@ -8,8 +8,9 @@ from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.auth.deps import get_current_user
 from app.database import Base
-from app.models import ENTITY_TYPES, EntityTag, FileAttachment, Relation
+from app.models import ENTITY_TYPES, EntityTag, FileAttachment, Relation, User
 from app.api.upload import UPLOAD_DIR
 
 ModelType = TypeVar("ModelType", bound=Base)
@@ -35,8 +36,9 @@ def create_crud_router(
         status: str | None = Query(None),
         priority: str | None = Query(None),
         db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user),
     ) -> Sequence[ModelType]:
-        query = select(model)
+        query = select(model).where(model.user_id == current_user.id)
         if status is not None and hasattr(model, 'status'):
             query = query.where(model.status == status)
         if priority is not None and hasattr(model, 'priority'):
@@ -51,8 +53,11 @@ def create_crud_router(
     async def get_item(
         item_id: int,
         db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user),
     ) -> ModelType:
-        result = await db.execute(select(model).where(model.id == item_id))
+        result = await db.execute(
+            select(model).where(model.id == item_id, model.user_id == current_user.id)
+        )
         item = result.scalar_one_or_none()
         if item is None:
             raise HTTPException(status_code=404, detail=f"{model.__name__} not found")
@@ -60,10 +65,11 @@ def create_crud_router(
 
     @router.post("/", response_model=response_schema, status_code=201)
     async def create_item(
-        data: create_schema,
+        data: CreateSchemaType,
         db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user),
     ) -> ModelType:
-        db_item = model(**data.model_dump())
+        db_item = model(**data.model_dump(), user_id=current_user.id)
         db.add(db_item)
         await db.flush()
         await db.refresh(db_item)
@@ -72,10 +78,13 @@ def create_crud_router(
     @router.put("/{item_id}", response_model=response_schema)
     async def update_item(
         item_id: int,
-        data: update_schema,
+        data: UpdateSchemaType,
         db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user),
     ) -> ModelType:
-        result = await db.execute(select(model).where(model.id == item_id))
+        result = await db.execute(
+            select(model).where(model.id == item_id, model.user_id == current_user.id)
+        )
         db_item = result.scalar_one_or_none()
         if db_item is None:
             raise HTTPException(status_code=404, detail=f"{model.__name__} not found")
@@ -90,8 +99,11 @@ def create_crud_router(
     async def delete_item(
         item_id: int,
         db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user),
     ) -> None:
-        result = await db.execute(select(model).where(model.id == item_id))
+        result = await db.execute(
+            select(model).where(model.id == item_id, model.user_id == current_user.id)
+        )
         db_item = result.scalar_one_or_none()
         if db_item is None:
             raise HTTPException(status_code=404, detail=f"{model.__name__} not found")
@@ -140,8 +152,9 @@ def create_crud_router(
         status: str | None = Query(None),
         priority: str | None = Query(None),
         db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user),
     ) -> dict[str, int]:
-        query = select(func.count(model.id))
+        query = select(func.count(model.id)).where(model.user_id == current_user.id)
         if status is not None and hasattr(model, 'status'):
             query = query.where(model.status == status)
         if priority is not None and hasattr(model, 'priority'):
