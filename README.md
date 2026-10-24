@@ -241,6 +241,44 @@ cp .env.prod.example .env.prod && vim .env.prod   # 填密码、SECRET_KEY、管
 
 ---
 
+## 🔀 仓库与分支策略
+
+项目采用「私有主力仓库 + 公开展示仓库」双仓库结构：
+
+| 仓库 | 可见性 | 说明 |
+|---|---|---|
+| `CAPTURE760/CaptureOS-plus` | 私有 | 主力开发仓库，保留完整真实历史（含部署阶段的原始提交），日常提交都推到这里 |
+| `CAPTURE760/CaptureOS-Plus-Public` | 公开 | 对外展示仓库，只包含脱敏后的历史与代码，不含真实 IP、域名、密码或附件 |
+
+本地分支与远程映射：
+
+| 分支 | 用途 | 远程 |
+|---|---|---|
+| `main` | 日常开发，完整真实历史 | `origin`（私有仓库） |
+| `public-clean` | 脱敏后的可公开历史 | `public`（推送时映射为公开仓库 `main`） |
+| `archive/real-history` | 历史重写前的原始提交备份 | `origin` |
+
+日常开发只推私有仓库：
+
+```bash
+git add .
+git commit -m "..."
+git push            # main → origin
+```
+
+需要更新公开展示版时：
+
+```bash
+git checkout public-clean
+git cherry-pick <要公开的提交哈希>
+git push public     # 已配置 refspec：public-clean → 公开仓库 main
+git checkout main
+```
+
+> ⚠️ 不要执行 `git push public main`，公开仓库永远只接收 `public-clean`；私有仓库不可改为公开状态。服务器只跟踪私有仓库 `origin`，更新命令见下文「公网部署」。
+
+---
+
 ## 💾 备份与恢复
 
 ### 三种数据出口，各有用途

@@ -4,7 +4,16 @@
 
 Personal Asset OS：管理项目、经验、问题、解决方案、知识、决策、复盘 7 种核心实体，支持标签、关联、时间线、全文搜索。
 
-- GitHub: https://github.com/CAPTURE760/CaptureOS-plus
+- GitHub（私有主力）: https://github.com/CAPTURE760/CaptureOS-plus
+- GitHub（公开展示）: https://github.com/CAPTURE760/CaptureOS-Plus-Public
+
+## 仓库与分支策略
+
+- `origin` → 私有仓库 `CaptureOS-plus`，`main` 保留完整真实历史，日常提交推这里
+- `public` → 公开仓库 `CaptureOS-Plus-Public`，推送经 refspec 映射：`public-clean` → 公开仓库 `main`
+- `archive/real-history` → 历史重写前的原始提交备份
+- 发布公开版：`git checkout public-clean && git cherry-pick <提交> && git push public`；**禁止 `git push public main`**
+- 服务器只跟踪私有仓库 `origin`，更新需 `git fetch origin && git reset --hard origin/main` 后按 `deploy/docker-compose.build.yml` 重建镜像
 
 ## 技术栈
 
