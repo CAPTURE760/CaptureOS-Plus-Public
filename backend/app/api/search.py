@@ -114,7 +114,7 @@ async def search(
         "results": results,
         "total": total,
         "type_counts": type_counts,
-        "min_date": await _get_min_date(db),
+        "min_date": await _get_min_date(db, current_user.id),
     }
 
 
