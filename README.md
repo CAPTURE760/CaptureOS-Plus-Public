@@ -392,6 +392,8 @@ http://192.168.x.x:3000
 
 公网环境与本地开发环境**完全独立**：本地用仓库根目录的 `docker-compose.yml`，服务器用 `deploy/` 目录下的 compose 文件，两者不共享容器、端口和数据卷。
 
+> 备注：下文命令中的 `/opt/CaptureOS`、`<SERVER_IP>`、`<your-registry>` 均为占位符，请替换为你的实际部署路径、服务器 IP 与镜像仓库地址；`example.com` 为示例域名。
+
 ### 请求链路
 
 ```
@@ -412,7 +414,7 @@ Cloudflare（HTTPS 终端，SSL/TLS = Flexible）
    certbot（备用，保留用于未来切换源站直接 HTTPS）
 ```
 
-> **为什么是这套组合**：服务器 443 端口被 已有代理服务占用且不能修改，因此 HTTPS 交给 Cloudflare（Flexible 模式），源站 nginx 只监听 80；宿主机 3000 端口被 已有监控服务 占用，因此 frontend 宿主机端口改用 3003。前端、后端、数据库均只绑定 `127.0.0.1`，不暴露公网。
+> **为什么是这套组合**：服务器 443 端口已被其他服务占用且不能修改，因此 HTTPS 交给 Cloudflare（Flexible 模式），源站 nginx 只监听 80；宿主机 3000 端口也已被其他服务占用，因此 frontend 宿主机端口改用 3003。前端、后端、数据库均只绑定 `127.0.0.1`，不暴露公网。
 
 ### 关键文件
 
@@ -433,11 +435,11 @@ Cloudflare（HTTPS 终端，SSL/TLS = Flexible）
 
 | 服务 | 本地（根 compose） | 公网（deploy compose） | 说明 |
 |---|---|---|---|
-| frontend | `3000:3000` | `127.0.0.1:3003:3000` | 宿主机 3000 被 已有监控服务 占用，故生产用 3003 |
+| frontend | `3000:3000` | `127.0.0.1:3003:3000` | 宿主机 3000 已被其他服务占用，故生产用 3003 |
 | backend | `8001:8000` | `127.0.0.1:8000:8000` | 本地用 8001，避免与前端 3000 混淆 |
 | db | `5432:5432` | `127.0.0.1:5432:5432` | 生产仅回环，供 Navicat 走 SSH 隧道 |
 | nginx | 不使用 | 宿主机 `:80` | 唯一公网入口，由系统 nginx 监听 |
-| HTTPS | 无 | Cloudflare `:443` | 源站 443 被 已有代理服务 占用 |
+| HTTPS | 无 | Cloudflare `:443` | 源站 443 已被其他服务占用 |
 
 - 容器内部端口永远是原始端口（frontend 3000、backend 8000、db 5432），`ports` 只改宿主机侧。
 - 容器间通信用服务名 + 容器端口（如 `db:5432`），不经过宿主机映射。
@@ -446,7 +448,7 @@ Cloudflare（HTTPS 终端，SSL/TLS = Flexible）
 
 1. 域名 `example.com` 托管在 Cloudflare，`A` 记录指向服务器公网 IP，代理状态开启（橙色云朵）。
 2. Cloudflare **SSL/TLS → Flexible**：用户到 Cloudflare 走 HTTPS，Cloudflare 回源到 80 走 HTTP。
-3. 源站只需放行 80 和 SSH；443 留给 已有代理服务。
+3. 源站只需放行 80 和 SSH；443 留给服务器上已有服务。
 4. nginx 配置生效：
 
 ```bash
@@ -454,7 +456,7 @@ cp deploy/nginx/example.com.conf /etc/nginx/conf.d/example.com.conf
 nginx -t && systemctl reload nginx
 ```
 
-> 备注：若以后改用标准 443（例如给 已有代理服务 配 SNI 分流），需要同时调整 Cloudflare 模式与源站证书；当前方案对 已有代理服务 零侵入，是成本最低的选择。
+> 备注：若以后改用标准 443（例如让占用 443 的服务做 SNI 分流），需要同时调整 Cloudflare 模式与源站证书；当前方案对已有服务零侵入，是成本最低的选择。
 
 ### 环境变量与认证
 
@@ -466,8 +468,8 @@ SECRET_KEY=至少32位随机字符串
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=管理员强密码
 # 使用 ACR 镜像时还需要：
-BACKEND_IMAGE=registry.example.com/captureos/captureos-backend:latest
-FRONTEND_IMAGE=registry.example.com/captureos/captureos-frontend:latest
+BACKEND_IMAGE=<your-registry>/captureos-backend:latest
+FRONTEND_IMAGE=<your-registry>/captureos-frontend:latest
 ```
 
 认证由 `SINGLE_USER_MODE` 切换，一套代码两种模式：
@@ -1294,16 +1296,16 @@ SELECT setval('knowledge_id_seq', (SELECT COALESCE(MAX(id),1) FROM knowledge));
 
 **做了什么：**
 - **公网部署**：新增 `deploy/` 目录（`docker-compose.build.yml` / `docker-compose.prod.yml`、`.env.prod.example`、`init.sh` / `deploy.sh`、宿主机 nginx 配置、备份脚本），在公网 VPS（arm64）上线 <https://example.com>
-- **HTTPS 方案**：Cloudflare 以 Flexible 模式终止 TLS，回源到源站 80；源站用宿主机原生 nginx 反代，完全避开被 已有代理服务 占用的 443
-- **端口重排**：frontend 绑定 `127.0.0.1:3003`（避开服务器 已有监控服务 的 3000）；backend `127.0.0.1:8000`；db `127.0.0.1:5432` 仅回环，供 Navicat 走 SSH 隧道
+- **HTTPS 方案**：Cloudflare 以 Flexible 模式终止 TLS，回源到源站 80；源站用宿主机原生 nginx 反代，完全避开被其他服务占用的 443
+- **端口重排**：frontend 绑定 `127.0.0.1:3003`（避开服务器已有服务的 3000）；backend `127.0.0.1:8000`；db `127.0.0.1:5432` 仅回环，供 Navicat 走 SSH 隧道
 - **多用户认证**：新增 `users` 表，所有实体与 tags 增加 `user_id` 外键；bcrypt 密码哈希、图片验证码、JWT（HS256 / 7 天）、登录页、前端路由守卫、退出登录
 - **双模式开关**：`SINGLE_USER_MODE=true` 本地免登录（自动归属 admin）；`false` 生产必须登录。前端通过 `GET /api/auth/config` 运行时判断，避免 `NEXT_PUBLIC_*` 构建时固化
 - **数据库迁移**：`014_add_users_and_user_id.py`（用户表 + user_id）、`015_add_display_name_to_users.py`（用户备注）
 - **线上问题修复**：搜索接口 `_get_min_date` 漏传 `user_id` 导致 500；附件上传时 `options.headers` 覆盖 `Authorization` 导致 401 被踢登录
 - **数据恢复**：迁移 014 内含 `TRUNCATE ... CASCADE`，本地执行时清空实体表，从 `backups/captureos-2026-10-24.sql` 整库恢复，并校准所有自增序列
-- **部署方式调整**：服务器 arm64 本地构建（`docker-compose.build.yml`），保留 ACR 镜像路径（`prod.yml` + `deploy.sh`）作为备选；放弃 服务器面板 OpenResty，停用旧 `captureos-nginx` 容器
+- **部署方式调整**：服务器 arm64 本地构建（`docker-compose.build.yml`），保留 ACR 镜像路径（`prod.yml` + `deploy.sh`）作为备选；放弃面板自带的 OpenResty，停用旧 `captureos-nginx` 容器
 
-**为什么：** 系统从"只能在本地用"变成"可以在公网长期运行、多人各自使用"；已有代理服务 占用 443、已有监控服务 占用 3000 的现实约束决定了端口和 HTTPS 方案；多用户必须解决数据隔离，否则多人使用会互相看到对方数据。
+**为什么：** 系统从"只能在本地用"变成"可以在公网长期运行、多人各自使用"；其他服务占用 443、已有服务占用 3000 的现实约束决定了端口和 HTTPS 方案；多用户必须解决数据隔离，否则多人使用会互相看到对方数据。
 
 **效果：** 公网可通过 HTTPS 稳定访问；本地开发体验不变（仍然免登录）；每个用户的数据完全隔离；部署、更新、回滚、备份都有明确命令与文档；踩过的坑沉淀为"排障速查表"。
 

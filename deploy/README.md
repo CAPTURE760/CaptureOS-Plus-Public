@@ -23,7 +23,7 @@ Cloudflare (HTTPS 终端, Flexible 模式)
 前端后端容器仅绑定回环地址 `127.0.0.1`，不暴露公网端口，统一经**宿主机 nginx** 同源反代，**无跨域问题**。
 
 > HTTPS 由 Cloudflare 提供（Flexible 模式），源站 nginx 仅监听 80 端口。
-> 注意：frontend 用 3003 端口而非 3000，避免与服务器 已有监控服务(127.0.0.1:3000) 冲突。
+> 注意：frontend 用 3003 端口而非 3000，避免与服务器上已有服务（127.0.0.1:3000）冲突。
 
 ## 文件说明
 
@@ -59,19 +59,19 @@ Cloudflare (HTTPS 终端, Flexible 模式)
 
 ### 前置条件
 
-1. 域名 `example.com` 已接入 **Cloudflare**，DNS A 记录指向服务器公网 IP `203.0.113.10`，代理状态开（橙色云朵）
+1. 域名 `example.com` 已接入 **Cloudflare**，DNS A 记录指向服务器公网 IP（部署时替换为你的实际 IP），代理状态开（橙色云朵）
 2. Cloudflare SSL/TLS 模式设为 **Flexible**
 3. 服务器已安装 **Docker + Compose**，且宿主机已安装 **nginx**（`apt install nginx`）
 4. ACR 私有仓库已在服务器登录：
    ```bash
-   docker login registry.example.com
+   docker login <your-acr-registry>
    ```
 
 ### 1. 上传 deploy 目录到服务器
 
 ```bash
 # 本地执行
-scp -r deploy/ root@203.0.113.10:/opt/CaptureOS/
+scp -r deploy/ root@<SERVER_IP>:/opt/CaptureOS/
 ```
 
 ### 2. 首次部署
