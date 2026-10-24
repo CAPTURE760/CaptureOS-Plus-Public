@@ -15,6 +15,9 @@ dependencies = [
     "python-dotenv",
     "python-docx",
     "python-multipart",
+    "passlib[bcrypt]",
+    "python-jose[cryptography]",
+    "pillow",
 ]
 
 [tool.setuptools.packages.find]

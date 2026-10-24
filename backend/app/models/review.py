@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, SmallInteger, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, SmallInteger, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -11,6 +11,7 @@ class Review(Base):
     __tablename__ = "reviews"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     title: Mapped[str] = mapped_column(String(200))
     event_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     success_factors: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

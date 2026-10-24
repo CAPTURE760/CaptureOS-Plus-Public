@@ -8,6 +8,7 @@ from app.models.review import Review
 from app.models.tag import Tag, EntityTag
 from app.models.relation import Relation, RelationType
 from app.models.file_attachment import FileAttachment
+from app.models.user import User
 
 __all__ = [
     "Project",
@@ -22,6 +23,7 @@ __all__ = [
     "Relation",
     "RelationType",
     "FileAttachment",
+    "User",
 ]
 
 # Entity type constants for polymorphic relations and tags
