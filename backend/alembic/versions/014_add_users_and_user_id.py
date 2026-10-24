@@ -7,8 +7,8 @@ Create Date: 2026-10-25
 """
 from typing import Sequence, Union
 
+import bcrypt
 import sqlalchemy as sa
-from passlib.context import CryptContext
 
 from alembic import op
 
@@ -29,7 +29,10 @@ ENTITY_TABLES = [
     "reviews",
 ]
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _hash_password(password: str) -> str:
+    """用 bcrypt 哈希密码（直接用 bcrypt 库，避免 passlib 与 bcrypt 4.x 不兼容）。"""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def upgrade() -> None:
@@ -70,7 +73,7 @@ def upgrade() -> None:
     op.create_unique_constraint("uq_tags_user_id_name", "tags", ["user_id", "name"])
 
     # 5. 创建默认 admin 用户（本地单用户模式使用，生产环境应修改密码）
-    admin_hash = pwd_context.hash("admin123")
+    admin_hash = _hash_password("admin123")
     op.execute(
         sa.text(
             "INSERT INTO users (username, password_hash, is_admin, is_active) "

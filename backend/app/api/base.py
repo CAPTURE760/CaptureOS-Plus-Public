@@ -65,7 +65,7 @@ def create_crud_router(
 
     @router.post("/", response_model=response_schema, status_code=201)
     async def create_item(
-        data: CreateSchemaType,
+        data: create_schema,
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(get_current_user),
     ) -> ModelType:
@@ -78,7 +78,7 @@ def create_crud_router(
     @router.put("/{item_id}", response_model=response_schema)
     async def update_item(
         item_id: int,
-        data: UpdateSchemaType,
+        data: update_schema,
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(get_current_user),
     ) -> ModelType:
