@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class UserResponse(BaseModel):
     id: int
     username: str
+    display_name: str | None = None
     is_admin: bool
     is_active: bool
     created_at: datetime
@@ -16,11 +17,13 @@ class UserResponse(BaseModel):
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=2, max_length=50)
     password: str = Field(..., min_length=6, max_length=100)
+    display_name: str | None = Field(None, max_length=100)
     is_admin: bool = False
 
 
 class UserUpdate(BaseModel):
     password: str | None = Field(None, min_length=6, max_length=100)
+    display_name: str | None = Field(None, max_length=100)
     is_admin: bool | None = None
     is_active: bool | None = None
 

@@ -98,6 +98,7 @@ async def create_user(
 
     user = User(
         username=data.username,
+        display_name=data.display_name,
         password_hash=hash_password(data.password),
         is_admin=data.is_admin,
         is_active=True,
@@ -127,6 +128,8 @@ async def update_user(
     update_data = data.model_dump(exclude_unset=True)
     if "password" in update_data and update_data["password"]:
         user.password_hash = hash_password(update_data["password"])
+    if "display_name" in update_data:
+        user.display_name = update_data["display_name"]
     if "is_admin" in update_data:
         user.is_admin = update_data["is_admin"]
     if "is_active" in update_data:

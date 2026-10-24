@@ -7,6 +7,9 @@
 
     # 创建/更新普通用户
     python -m scripts.create_admin --username zhangsan --password <password> --no-admin
+
+    # 带备注
+    python -m scripts.create_admin --username zhangsan --password <password> --no-admin --display-name "张三"
 """
 import argparse
 import asyncio
@@ -23,7 +26,7 @@ from app.database import async_session
 from app.models.user import User
 
 
-async def create_user(username: str, password: str, is_admin: bool) -> None:
+async def create_user(username: str, password: str, is_admin: bool, display_name: str | None = None) -> None:
     async with async_session() as db:
         result = await db.execute(select(User).where(User.username == username))
         user = result.scalar_one_or_none()
@@ -32,10 +35,13 @@ async def create_user(username: str, password: str, is_admin: bool) -> None:
             user.password_hash = hash_password(password)
             user.is_admin = is_admin
             user.is_active = True
+            if display_name is not None:
+                user.display_name = display_name
             action = "更新"
         else:
             user = User(
                 username=username,
+                display_name=display_name,
                 password_hash=hash_password(password),
                 is_admin=is_admin,
                 is_active=True,
@@ -45,13 +51,15 @@ async def create_user(username: str, password: str, is_admin: bool) -> None:
 
         await db.commit()
         role = "管理员" if is_admin else "普通用户"
-        print(f"✓ 已{action}{role}用户: {username}")
+        name = f"（{display_name}）" if display_name else ""
+        print(f"✓ 已{action}{role}用户: {username}{name}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="创建或更新用户（默认管理员）")
     parser.add_argument("--username", default=os.getenv("ADMIN_USERNAME", "admin"), help="用户名")
     parser.add_argument("--password", default=os.getenv("ADMIN_PASSWORD"), help="密码")
+    parser.add_argument("--display-name", default=None, help="备注/显示名")
     parser.add_argument("--no-admin", action="store_true", help="创建普通用户而非管理员")
     args = parser.parse_args()
 
@@ -59,7 +67,7 @@ def main() -> None:
         print("错误：请通过 --password 参数或 ADMIN_PASSWORD 环境变量提供密码", file=sys.stderr)
         sys.exit(1)
 
-    asyncio.run(create_user(args.username, args.password, is_admin=not args.no_admin))
+    asyncio.run(create_user(args.username, args.password, is_admin=not args.no_admin, display_name=args.display_name))
 
 
 if __name__ == "__main__":
