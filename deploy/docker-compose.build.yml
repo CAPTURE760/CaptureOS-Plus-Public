@@ -1,0 +1,95 @@
+# 生产环境 Compose — 服务器本地构建版（从源码 build，不拉取 ACR 镜像）
+# 与 docker-compose.prod.yml 的区别：backend/frontend 用 build: 而非 image:
+# 适用场景：服务器有源码，想本地构建镜像部署
+#
+# 用法:
+#   docker compose -f docker-compose.build.yml up -d --build
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: captureos-db
+    environment:
+      POSTGRES_USER: captureos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: captureos
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U captureos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: captureos-backend
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://captureos:${POSTGRES_PASSWORD}@db:5432/captureos
+      DATABASE_URL_SYNC: postgresql+psycopg2://captureos:${POSTGRES_PASSWORD}@db:5432/captureos
+      APP_NAME: CaptureOS
+      DEBUG: "false"
+      CORS_ORIGINS: '["https://example.com","https://www.example.com","http://localhost:3000","http://localhost:8001"]'
+      # ── 多用户认证 ──
+      SINGLE_USER_MODE: "false"
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_EXPIRE_DAYS: "7"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+      - backups_data:/backups
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: captureos-frontend
+    ports:
+      - "127.0.0.1:3003:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: /api
+      # ── 多用户认证 ──
+      NEXT_PUBLIC_SINGLE_USER_MODE: "false"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - ./certs:/etc/letsencrypt
+      - ./certbot-www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+
+  backup:
+    image: docker:24-cli
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - backups_data:/backups
+      - uploads_data:/uploads:ro
+      - ./scripts/backup.sh:/scripts/backup.sh:ro
+    environment:
+      BACKUP_DIR: /backups
+      UPLOADS_DIR: /uploads
+      DB_CONTAINER: captureos-db
+      RETENTION_DAYS: "14"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    command: sh /scripts/backup.sh
+
+volumes:
+  postgres_data:
+  uploads_data:
+  backups_data:

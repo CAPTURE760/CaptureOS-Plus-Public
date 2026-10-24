@@ -37,6 +37,10 @@ services:
       DEBUG: "false"
       # 同源部署，CORS 基本用不上，仍放行域名与本地备用
       CORS_ORIGINS: '["https://example.com","https://www.example.com","http://localhost:3000","http://localhost:8001"]'
+      # ── 多用户认证 ──
+      SINGLE_USER_MODE: "false"
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_EXPIRE_DAYS: "7"
     depends_on:
       db:
         condition: service_healthy
@@ -60,6 +64,8 @@ services:
     environment:
       # 同源部署，浏览器用相对路径调后端
       NEXT_PUBLIC_API_URL: /api
+      # ── 多用户认证 ──
+      NEXT_PUBLIC_SINGLE_USER_MODE: "false"
     depends_on:
       - backend
     restart: unless-stopped
