@@ -47,8 +47,14 @@ export default function Sidebar() {
 
   // ─── 认证模式（运行时从后端获取；默认多用户，获取后单用户模式隐藏退出按钮） ───
   const [multiUserMode, setMultiUserMode] = useState(true);
+  const [currentUsername, setCurrentUsername] = useState<string>('');
   useEffect(() => {
     getAuthConfig().then((c) => setMultiUserMode(!c.single_user_mode));
+    if (typeof window !== 'undefined' && localStorage.getItem('token')) {
+      fetchAPI<{ username: string }>('/auth/me')
+        .then((u) => setCurrentUsername(u.username))
+        .catch(() => setCurrentUsername(''));
+    }
   }, []);
 
   // ─── 主题切换（null 表示尚未读取客户端主题，避免 SSR 文案不一致） ───
@@ -292,6 +298,11 @@ export default function Sidebar() {
 
         {/* 主题切换 + 退出登录 */}
         <div className="p-4 border-t border-gray-700 space-y-1">
+          {multiUserMode && currentUsername && (
+            <div className="px-3 py-2 text-center text-xs text-gray-400">
+              👤 {currentUsername}
+            </div>
+          )}
           <button
             onClick={toggleTheme}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"

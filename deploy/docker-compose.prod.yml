@@ -103,8 +103,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    restart: "no"
-    command: sh /scripts/backup.sh
+    restart: unless-stopped
+    command: sh -c 'while :; do sh /scripts/backup.sh; sleep 86400; done'
 
 volumes:
   postgres_data:
