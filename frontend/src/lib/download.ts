@@ -16,9 +16,8 @@ export async function downloadFile(
       // 已经是完整 URL
       fileUrl = url;
     } else {
-      // 相对路径，需要拼接后端地址
-      const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-      fileUrl = `http://${hostname}:8001${url}`;
+      // 相对路径，直接使用（经 nginx / Next.js rewrite 代理到后端）
+      fileUrl = url;
     }
 
     const response = await fetch(fileUrl);
