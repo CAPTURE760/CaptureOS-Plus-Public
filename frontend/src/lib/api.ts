@@ -74,6 +74,12 @@ export async function fetchAPI<T>(path: string, options?: RequestInit): Promise<
   // 401：清除 token 并跳转登录页
   // （单用户模式下后端不会返回 401，所以无需区分模式）
   if (res.status === 401) {
+    let detail = '';
+    try {
+      const err = await res.json();
+      detail = err?.detail || '';
+    } catch { /* ignore */ }
+    console.error(`[401] ${url}`, detail || res.statusText);
     clearToken();
     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
       window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
