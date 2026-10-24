@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { fetchAPI, clearToken, SINGLE_USER_MODE } from '@/lib/api';
+import { fetchAPI, clearToken, getAuthConfig } from '@/lib/api';
 import {
   entityTypeLabels as entityLabels,
   entityTypeColors as entityColors,
@@ -44,6 +44,12 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  // ─── 认证模式（运行时从后端获取；默认多用户，获取后单用户模式隐藏退出按钮） ───
+  const [multiUserMode, setMultiUserMode] = useState(true);
+  useEffect(() => {
+    getAuthConfig().then((c) => setMultiUserMode(!c.single_user_mode));
+  }, []);
 
   // ─── 主题切换（null 表示尚未读取客户端主题，避免 SSR 文案不一致） ───
   const [isDark, setIsDark] = useState<boolean | null>(null);
@@ -292,7 +298,7 @@ export default function Sidebar() {
           >
             {isDark === null ? '🌓 主题切换' : isDark ? '☀️ 切换亮色' : '🌙 切换暗色'}
           </button>
-          {!SINGLE_USER_MODE && (
+          {multiUserMode && (
             <button
               onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-red-600 hover:text-white transition-colors"

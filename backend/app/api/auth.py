@@ -20,6 +20,17 @@ from app.schemas.user import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+@router.get("/config")
+async def get_auth_config():
+    """公开接口：返回认证模式配置，前端据此决定是否要求登录。
+
+    注意：不能用 NEXT_PUBLIC_ 环境变量传递（构建时固化），
+    必须运行时从后端获取，保证同一份前端镜像两种模式通用。
+    """
+    from app.config import settings
+    return {"single_user_mode": settings.SINGLE_USER_MODE}
+
+
 @router.get("/captcha")
 async def get_captcha():
     """获取验证码图片，返回 captcha_id 和 base64/png。"""

@@ -17,6 +17,11 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 echo "🗄️  运行数据库迁移..."
 docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T backend alembic upgrade head
 
+echo "👤 创建/更新管理员账号（读取 .env.prod 的 ADMIN_USERNAME/ADMIN_PASSWORD）..."
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T \
+  -e ADMIN_USERNAME -e ADMIN_PASSWORD \
+  backend python -m scripts.create_admin
+
 echo "✅ 部署完成"
 echo "   前端: https://example.com"
 echo "   后端健康检查: https://example.com/health"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { fetchAPI, setToken, SINGLE_USER_MODE } from '@/lib/api';
+import { fetchAPI, setToken, getAuthConfig } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,14 +16,8 @@ export default function LoginPage() {
   const [captchaSrc, setCaptchaSrc] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [ready, setReady] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
-
-  // 单用户模式直接跳转首页
-  useEffect(() => {
-    if (SINGLE_USER_MODE) {
-      router.replace('/');
-    }
-  }, [router]);
 
   // 加载验证码
   const loadCaptcha = async () => {
@@ -42,11 +36,32 @@ export default function LoginPage() {
     }
   };
 
+  // 初始化：单用户模式直接跳首页；多用户模式加载验证码
   useEffect(() => {
-    if (!SINGLE_USER_MODE) {
+    let cancelled = false;
+    (async () => {
+      const config = await getAuthConfig();
+      if (cancelled) return;
+      if (config.single_user_mode) {
+        router.replace('/');
+        return;
+      }
+      setReady(true);
       loadCaptcha();
-    }
-  }, []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

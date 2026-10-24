@@ -67,8 +67,6 @@ services:
     environment:
       # 同源部署，浏览器用相对路径调后端
       NEXT_PUBLIC_API_URL: /api
-      # ── 多用户认证 ──
-      NEXT_PUBLIC_SINGLE_USER_MODE: "false"
     depends_on:
       - backend
     restart: unless-stopped

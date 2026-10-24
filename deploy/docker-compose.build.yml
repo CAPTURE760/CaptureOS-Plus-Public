@@ -60,8 +60,6 @@ services:
       - "127.0.0.1:3003:3000"
     environment:
       NEXT_PUBLIC_API_URL: /api
-      # ── 多用户认证 ──
-      NEXT_PUBLIC_SINGLE_USER_MODE: "false"
     depends_on:
       - backend
     restart: unless-stopped
