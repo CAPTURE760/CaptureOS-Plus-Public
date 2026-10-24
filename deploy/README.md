@@ -29,7 +29,8 @@ Cloudflare (HTTPS 终端, Flexible 模式)
 
 | 文件 | 用途 | 是否入库 |
 |---|---|---|
-| `docker-compose.prod.yml` | 生产环境 Compose（ACR 镜像 + db + backend + frontend + certbot + backup，**不含 nginx**） | ✅ |
+| `docker-compose.build.yml` | **服务器当前实际使用**：源码构建版 Compose（db + backend + frontend + certbot + backup，**不含 nginx**） | ✅ |
+| `docker-compose.prod.yml` | ACR 镜像版 Compose（`image: ${BACKEND_IMAGE}`），配 `deploy.sh` 使用 | ✅ |
 | `nginx/example.com.conf` | 宿主机 nginx 反代配置（HTTP:80，Cloudflare 回源用） | ✅ |
 | `nginx/example.com.acme.conf` | 【备用】直接 HTTPS 方案的 ACME 临时配置 | ✅ |
 | `nginx/default.conf` | 【已废弃】原 docker nginx 容器配置 | ✅ |
@@ -42,14 +43,17 @@ Cloudflare (HTTPS 终端, Flexible 模式)
 
 | 项 | 本地（根目录 compose） | 生产（本目录） |
 |---|---|---|
-| 镜像来源 | 本地 `build` | 阿里云 ACR 拉取 |
+| 镜像来源 | 本地 `build` | 服务器本地 `build`（`build.yml`）或 ACR 拉取（`prod.yml`） |
 | 代码挂载 | `./backend:/app` 热重载 | 无挂载，镜像内固定 |
 | 调试模式 | `DEBUG=true` + `--reload` | `DEBUG=false` |
-| 数据库端口 | 暴露 `5432` | 不暴露 |
+| 数据库端口 | 暴露 `5432` | 绑定 `127.0.0.1:5432`（仅回环，供 Navicat SSH 隧道） |
 | 前端端口 | 暴露 3000 | 绑定 `127.0.0.1:3003`，经宿主机 nginx 反代 |
 | 后端端口 | 暴露 8001 | 绑定 `127.0.0.1:8000`，经宿主机 nginx 反代 |
+| 认证模式 | `SINGLE_USER_MODE=true` 免登录 | `SINGLE_USER_MODE=false` 登录 + 验证码 + JWT |
 | HTTPS | 无 | Cloudflare Flexible（源站 HTTP:80） |
 | 数据库密码 | `captureos` | `.env.prod` 强密码 |
+
+> 备注：当前日本服务器（arm64）为原生构建，实际使用 `docker-compose.build.yml`；`init.sh` / `deploy.sh` 默认走 `docker-compose.prod.yml`（ACR 镜像），手动执行命令时注意替换 `-f` 参数。生产命令必须同时带 `--env-file .env.prod` 和 `-f <compose 文件>`，否则会读到错误的配置或空环境变量。
 
 ## 服务器部署步骤
 
@@ -128,18 +132,26 @@ cd /opt/CaptureOS/deploy
 
 ## 常用运维命令
 
+> 当前服务器实际使用 `docker-compose.build.yml`；若走 ACR 镜像则把下方命令中的文件名换成 `docker-compose.prod.yml`。两种情况的 `--env-file .env.prod` 都不能省。
+
 ```bash
 # 查看所有服务状态
-docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+docker compose --env-file .env.prod -f docker-compose.build.yml ps
 
 # 查看日志
-docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f backend
+docker compose --env-file .env.prod -f docker-compose.build.yml logs -f --tail=200 backend
 
 # 重启某个服务
-docker compose --env-file .env.prod -f docker-compose.prod.yml restart backend
+docker compose --env-file .env.prod -f docker-compose.build.yml restart backend
+
+# 更新代码后重建
+docker compose --env-file .env.prod -f docker-compose.build.yml up -d --build backend frontend
+
+# 数据库迁移
+docker compose --env-file .env.prod -f docker-compose.build.yml exec -T backend alembic upgrade head
 
 # 手动触发备份
-docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm backup
+docker compose --env-file .env.prod -f docker-compose.build.yml run --rm backup
 
 # 宿主机 nginx 配置检查与重载
 nginx -t && systemctl reload nginx

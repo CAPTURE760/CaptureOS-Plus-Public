@@ -9,6 +9,8 @@
 </p>
 
 > 一个全栈个人知识与资产管理平台，帮助你系统化地记录、关联、管理和复盘工作与学习中的各类信息。支持一键 Docker Compose 部署，开箱即用。
+>
+> 两套运行环境：**本地单用户模式**（免登录，开箱即用）与 **公网多用户模式**（登录 + 图片验证码 + 数据隔离）。公网访问地址：<https://example.com>（部署细节见 [公网部署](#deploy-production) 与 [`deploy/README.md`](deploy/README.md)）。
 
 ---
 
@@ -72,6 +74,7 @@
 | 📥 **导出 / 导入** | Word（阅读用）+ JSON（迁移用）双格式导出，JSON 可再导入形成闭环 |
 | 💾 **自动备份** | 启动时自动备份数据库 + 附件，幂等设计，保留最近 14 天 |
 | 📱 **移动端适配** | 手机端抽屉式侧边栏、卡片列表、响应式弹窗 |
+| 🔐 **多用户认证** | 生产模式登录（图片验证码 + bcrypt + JWT），按 `user_id` 数据隔离；本地模式免登录 |
 
 ---
 
@@ -210,14 +213,31 @@ docker compose down -v             # 停止并删除数据（危险！）
 
 ---
 
-### 两种部署方式对比
+### 部署方式三：公网服务器（生产）
 
-| | 预构建镜像 | 源码构建 |
-|--|-----------|---------|
-| **首次启动** | 2-3 分钟 | 5-10 分钟 |
-| **后续更新** | `pull` 秒级 | `build` 1-2 分钟 |
-| **热重载** | ❌ 改代码要重新推送 | ✅ 自动生效 |
-| **适合谁** | 普通用户 | 需要改代码的开发者 |
+面向有公网 VPS、需要域名访问和多用户隔离的场景。完整步骤见 [公网部署（生产环境）](#deploy-production) 和 [`deploy/README.md`](deploy/README.md)。
+
+```bash
+# 服务器上（代码在 /opt/CaptureOS，使用 deploy 目录的 compose）
+cd /opt/CaptureOS/deploy
+cp .env.prod.example .env.prod && vim .env.prod   # 填密码、SECRET_KEY、管理员账号
+./init.sh                                         # 启动 + 迁移 + 建管理员 + 装 nginx 配置
+```
+
+> ⚠️ 生产环境的每条 compose 命令都必须带 `--env-file .env.prod -f docker-compose.build.yml`（或 `-f docker-compose.prod.yml`），否则会读到错误的配置文件或空环境变量，详见 [公网部署](#deploy-production)。
+
+---
+
+### 三种部署方式对比
+
+| | 预构建镜像 | 源码构建（本地） | 公网服务器（生产） |
+|--|-----------|---------|---------|
+| **首次启动** | 2-3 分钟 | 5-10 分钟 | 5-15 分钟（arm64 本地构建） |
+| **后续更新** | `pull` 秒级 | `build` 1-2 分钟 | `git pull` + `build`，或 `deploy.sh` 拉镜像 |
+| **热重载** | ❌ 改代码要重新推送 | ✅ 自动生效 | ❌ 镜像固定，重建才生效 |
+| **认证** | 无（免登录） | 无（免登录） | 登录 + 验证码 + JWT |
+| **HTTPS / 域名** | 无 | 无 | Cloudflare + 宿主机 nginx |
+| **适合谁** | 普通用户 | 需要改代码的开发者 | 需要公网访问、多人使用的场景 |
 
 ---
 
@@ -366,6 +386,187 @@ http://192.168.x.x:3000
 
 ---
 
+<a id="deploy-production"></a>
+
+## 🌐 公网部署（生产环境）
+
+公网环境与本地开发环境**完全独立**：本地用仓库根目录的 `docker-compose.yml`，服务器用 `deploy/` 目录下的 compose 文件，两者不共享容器、端口和数据卷。
+
+### 请求链路
+
+```
+浏览器
+  ↓ https://example.com
+Cloudflare（HTTPS 终端，SSL/TLS = Flexible）
+  ↓ http（回源到源站 80）
+宿主机 nginx（/etc/nginx/conf.d/example.com.conf）
+  ├── /api/          → 127.0.0.1:8000（FastAPI backend 容器）
+  ├── /health        → 127.0.0.1:8000/health
+  ├── /uploads/      → 127.0.0.1:8000（附件静态文件）
+  ├── /_next/static/ → 127.0.0.1:3003（Next.js 静态资源）
+  └── /              → 127.0.0.1:3003（Next.js frontend 容器）
+        ↓
+   backend → db:5432（PostgreSQL，容器网络内）
+   backend → uploads 卷
+   backup sidecar（定时备份，保留 14 天）
+   certbot（备用，保留用于未来切换源站直接 HTTPS）
+```
+
+> **为什么是这套组合**：服务器 443 端口被 已有代理服务占用且不能修改，因此 HTTPS 交给 Cloudflare（Flexible 模式），源站 nginx 只监听 80；宿主机 3000 端口被 已有监控服务 占用，因此 frontend 宿主机端口改用 3003。前端、后端、数据库均只绑定 `127.0.0.1`，不暴露公网。
+
+### 关键文件
+
+| 文件 | 作用 | 是否入库 |
+|---|---|---|
+| `deploy/docker-compose.build.yml` | **服务器当前实际使用**：源码构建，db/backend/frontend/certbot/backup | ✅ |
+| `deploy/docker-compose.prod.yml` | ACR 镜像版（`image: ${BACKEND_IMAGE}`），配 `deploy.sh` | ✅ |
+| `deploy/.env.prod.example` | 生产变量模板 | ✅ |
+| `deploy/.env.prod` | 真实密码、`SECRET_KEY`、管理员账号 | ❌ git 忽略 |
+| `deploy/nginx/example.com.conf` | 宿主机 nginx 站点配置模板 | ✅ |
+| `deploy/init.sh` | 首次部署（启动 → 迁移 → 建管理员 → 装 nginx 配置） | ✅ |
+| `deploy/deploy.sh` | ACR 路径的日常更新（pull → 重启 → 迁移） | ✅ |
+| `deploy/scripts/backup.sh` | 生产备份脚本（挂载进 backup 容器） | ✅ |
+
+> 备注：`init.sh` / `deploy.sh` 默认使用 `docker-compose.prod.yml`（拉 ACR 镜像）。当前日本服务器受 arm64 跨架构构建速度限制，实际改为**服务器本地构建**，因此手动执行命令时把 `-f docker-compose.prod.yml` 换成 `-f docker-compose.build.yml` 即可。
+
+### 端口划分
+
+| 服务 | 本地（根 compose） | 公网（deploy compose） | 说明 |
+|---|---|---|---|
+| frontend | `3000:3000` | `127.0.0.1:3003:3000` | 宿主机 3000 被 已有监控服务 占用，故生产用 3003 |
+| backend | `8001:8000` | `127.0.0.1:8000:8000` | 本地用 8001，避免与前端 3000 混淆 |
+| db | `5432:5432` | `127.0.0.1:5432:5432` | 生产仅回环，供 Navicat 走 SSH 隧道 |
+| nginx | 不使用 | 宿主机 `:80` | 唯一公网入口，由系统 nginx 监听 |
+| HTTPS | 无 | Cloudflare `:443` | 源站 443 被 已有代理服务 占用 |
+
+- 容器内部端口永远是原始端口（frontend 3000、backend 8000、db 5432），`ports` 只改宿主机侧。
+- 容器间通信用服务名 + 容器端口（如 `db:5432`），不经过宿主机映射。
+
+### 域名与 HTTPS
+
+1. 域名 `example.com` 托管在 Cloudflare，`A` 记录指向服务器公网 IP，代理状态开启（橙色云朵）。
+2. Cloudflare **SSL/TLS → Flexible**：用户到 Cloudflare 走 HTTPS，Cloudflare 回源到 80 走 HTTP。
+3. 源站只需放行 80 和 SSH；443 留给 已有代理服务。
+4. nginx 配置生效：
+
+```bash
+cp deploy/nginx/example.com.conf /etc/nginx/conf.d/example.com.conf
+nginx -t && systemctl reload nginx
+```
+
+> 备注：若以后改用标准 443（例如给 已有代理服务 配 SNI 分流），需要同时调整 Cloudflare 模式与源站证书；当前方案对 已有代理服务 零侵入，是成本最低的选择。
+
+### 环境变量与认证
+
+`deploy/.env.prod` 至少包含：
+
+```bash
+POSTGRES_PASSWORD=强密码
+SECRET_KEY=至少32位随机字符串
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=管理员强密码
+# 使用 ACR 镜像时还需要：
+BACKEND_IMAGE=registry.example.com/captureos/captureos-backend:latest
+FRONTEND_IMAGE=registry.example.com/captureos/captureos-frontend:latest
+```
+
+认证由 `SINGLE_USER_MODE` 切换，一套代码两种模式：
+
+| 模式 | 值 | 行为 |
+|---|---|---|
+| 本地单用户 | `true`（默认） | 免登录，所有数据归属 `admin` 用户 |
+| 公网多用户 | `false`（deploy compose 中设置） | 必须登录；图片验证码 + bcrypt + JWT；数据按 `user_id` 隔离 |
+
+- 登录接口：`GET /api/auth/captcha` → `POST /api/auth/login`
+- 不开放注册，仅管理员可创建用户：`python -m scripts.create_admin --username <名> --password <密码> [--no-admin] [--display-name 备注]`
+- JWT 有效期 7 天；同一账号可多设备同时登录；修改密码不会让已签发 token 立即失效（无 `token_version`，已知限制）。
+
+### 首次部署
+
+```bash
+# 1. 服务器准备
+git clone https://github.com/CAPTURE760/CaptureOS-plus.git /opt/CaptureOS
+cd /opt/CaptureOS/deploy
+cp .env.prod.example .env.prod && vim .env.prod
+
+# 2. 启动（ACR 镜像路径）
+./init.sh
+
+# 或：服务器本地构建路径（当前实际使用）
+docker compose --env-file .env.prod -f docker-compose.build.yml up -d --build
+docker compose --env-file .env.prod -f docker-compose.build.yml exec -T backend alembic upgrade head
+docker compose --env-file .env.prod -f docker-compose.build.yml exec -T \
+  -e ADMIN_USERNAME -e ADMIN_PASSWORD backend python -m scripts.create_admin
+```
+
+### 日常更新
+
+**服务器本地构建（当前）**：
+
+```bash
+cd /opt/CaptureOS && git pull origin main
+cd deploy
+docker compose --env-file .env.prod -f docker-compose.build.yml up -d --build backend frontend
+docker compose --env-file .env.prod -f docker-compose.build.yml exec -T backend alembic upgrade head  # 有新迁移时
+```
+
+**ACR 镜像**：
+
+```bash
+bash push.sh          # 本地构建并推送（需同时支持 amd64/arm64）
+cd /opt/CaptureOS/deploy && ./deploy.sh
+```
+
+### 运维命令（生产必带完整前缀）
+
+```bash
+cd /opt/CaptureOS/deploy
+
+# 状态 / 日志 / 重启
+docker compose --env-file .env.prod -f docker-compose.build.yml ps
+docker compose --env-file .env.prod -f docker-compose.build.yml logs -f --tail=200 backend
+docker compose --env-file .env.prod -f docker-compose.build.yml restart backend
+
+# 数据库迁移
+docker compose --env-file .env.prod -f docker-compose.build.yml exec -T backend alembic upgrade head
+
+# 手动备份
+docker compose --env-file .env.prod -f docker-compose.build.yml run --rm backup
+
+# 宿主机 nginx
+nginx -t && systemctl reload nginx
+```
+
+> ⚠️ **两条铁律**
+> 1. 生产命令必须同时带 `--env-file .env.prod` 和 `-f docker-compose.build.yml`（或 `prod.yml`）。漏 `-f` 会向上找到根目录的本地 compose，用另一个项目名起第二套容器并抢占 5432，看起来像"数据丢了"；漏 `--env-file` 会导致 `POSTGRES_PASSWORD` / `SECRET_KEY` 为空，后端起不来或登录 401。
+> 2. **禁止 `docker compose down -v`、禁止删除 `deploy_postgres_data` / `deploy_uploads_data` / `deploy_backups_data` 卷**，否则数据库、附件、备份会一起消失。
+
+### 生产数据位置
+
+| 数据 | 位置 |
+|---|---|
+| 数据库 | 命名卷 `deploy_postgres_data` |
+| 附件 | 命名卷 `deploy_uploads_data`（容器内 `/app/uploads`） |
+| 备份 | 命名卷 `deploy_backups_data`（容器内 `/backups`） |
+| 密钥 | 宿主机 `deploy/.env.prod`（不入库） |
+
+> 备注：Compose 命名卷的真实名是「项目名_卷名」，项目名默认取 compose 文件所在目录名。服务器在 `deploy/` 下执行，所以是 `deploy_*`；本地在仓库根执行，所以是 `captureos-plus_*`。换目录执行 compose 前先确认项目名。
+
+### 生产排障速查
+
+| 现象 | 常见根因 | 处理 |
+|---|---|---|
+| 前端正常、API 全 500 | 模型加了字段但没跑迁移 | `alembic upgrade head` 后重启 backend |
+| 搜索 500，其他接口正常 | 依赖注入漏传 `user_id` | 查看 backend 日志定位，修复后重建 |
+| 上传附件后被踢登录 | 请求头覆盖了 `Authorization` | 合并 headers，不要整体替换 |
+| 改 `.env.prod` 密码后 db 认证失败 | 数据卷里仍是旧密码 | 备份后重建数据库卷（危险操作） |
+| 恢复备份后新建报 duplicate key | `pg_restore` 未校准序列 | 对每张表 `setval(..., MAX(id))` |
+| 看到两套容器 / 端口冲突 | compose 漏了 `-f` | 用 `docker inspect` 查 `com.docker.compose.project.config_files` |
+| 旧 `captureos-nginx` 容器起不来 | 宿主机 nginx 已占 80 | 停用并删除旧容器，从 compose 移除该服务 |
+| 构建报 buildx 挂载不存在 | multiarch builder 损坏 | `docker buildx rm multiarch` 后重跑 |
+
+---
+
 ## 📁 项目结构
 
 ```
@@ -395,18 +596,22 @@ CaptureOS-plus/
 │   │   │   ├── import_data.py       # JSON 导入（ID 重映射）
 │   │   │   ├── upload.py            # 附件上传
 │   │   │   └── file_attachments.py  # 附件查询/下载/删除
+│   │   ├── auth/                     # 认证（deps / security / captcha）
 │   │   ├── models/                   # 数据库模型
 │   │   ├── schemas/                  # Pydantic 数据模式
 │   │   ├── backup.py                # 备份触发逻辑（lifespan 钩子）
 │   │   ├── config.py                # 配置管理
 │   │   ├── database.py              # 数据库连接
 │   │   └── main.py                  # FastAPI 入口
-│   ├── alembic/                      # 数据库迁移（001~012）
+│   ├── alembic/                      # 数据库迁移（001~015）
 │   │   └── versions/
 │   │       ├── 001_initial_tables.py        # 初始表结构
 │   │       ├── ...
 │   │       ├── 011_add_file_attachment_table.py  # 附件表
-│   │       └── 012_add_solution_status.py        # 解决方案状态
+│   │       ├── 012_add_solution_status.py        # 解决方案状态
+│   │       ├── 013_add_attachments_column.py     # 实体附件元数据字段
+│   │       ├── 014_add_users_and_user_id.py      # 多用户 + 各表 user_id（含清空逻辑，执行前必备份）
+│   │       └── 015_add_display_name_to_users.py  # 用户备注字段
 │   ├── uploads/                      # 附件存储（gitignore，不进镜像）
 │   ├── Dockerfile
 │   └── pyproject.toml
@@ -454,6 +659,13 @@ CaptureOS-plus/
 │   ├── restore.sh                    # 恢复脚本（整库原样还原）
 │   └── start-captureos.sh            # 启动逻辑（被 start-captureos.bat 调用）
 ├── backups/                          # 备份输出目录（gitignore）
+├── deploy/                           # 公网服务器部署（与本地完全独立）
+│   ├── docker-compose.build.yml      # 服务器本地构建（当前实际使用）
+│   ├── docker-compose.prod.yml       # ACR 镜像版
+│   ├── .env.prod.example             # 生产变量模板（.env.prod 不入库）
+│   ├── init.sh / deploy.sh           # 首次部署 / 日常更新
+│   ├── nginx/example.com.conf       # 宿主机 nginx 反代配置
+│   └── scripts/backup.sh             # 生产备份脚本
 ├── docker-compose.yml              # 源码构建配置（含 backup sidecar）
 ├── docker-compose.pull.yml         # 预构建镜像配置
 ├── start-captureos.bat              # Windows 一键启动（含备份触发）
@@ -466,6 +678,19 @@ CaptureOS-plus/
 ---
 
 ## 📡 API 接口
+
+### 认证接口（生产模式）
+
+| 接口 | 方法 | 描述 |
+|------|------|------|
+| `/api/auth/config` | `GET` | 公开接口，返回 `{"single_user_mode": true/false}`，前端据此决定是否要求登录 |
+| `/api/auth/captcha` | `GET` | 获取图片验证码，响应头 `X-Captcha-Id` 返回验证码 ID |
+| `/api/auth/login` | `POST` | 登录：校验验证码 + 密码，签发 JWT |
+| `/api/auth/me` | `GET` | 获取当前登录用户 |
+| `/api/auth/users` | `GET/POST` | 用户列表 / 创建用户（仅管理员，不开放注册） |
+| `/api/auth/users/{id}` | `PUT` | 更新用户密码 / 备注 / 启用状态（仅管理员） |
+
+> 本地 `SINGLE_USER_MODE=true` 时后端自动以 `admin` 身份执行，无需任何鉴权头；生产 `SINGLE_USER_MODE=false` 时所有实体接口都要求 `Authorization: Bearer <token>`，数据按 `user_id` 隔离。
 
 ### 实体 CRUD 接口
 
@@ -612,6 +837,23 @@ BACKEND_TAG=v1.1 FRONTEND_TAG=v1.1 docker compose -f docker-compose.pull.yml pul
 BACKEND_TAG=v1.1 FRONTEND_TAG=v1.1 docker compose -f docker-compose.pull.yml up -d
 ```
 
+### 公网服务器更新
+
+公网部署与本地完全独立，完整说明见 [公网部署（生产环境）](#deploy-production)。
+
+```bash
+# 服务器本地构建（当前实际使用）
+cd /opt/CaptureOS && git pull origin main
+cd deploy
+docker compose --env-file .env.prod -f docker-compose.build.yml up -d --build backend frontend
+docker compose --env-file .env.prod -f docker-compose.build.yml exec -T backend alembic upgrade head  # 有新迁移时
+
+# 验证
+curl -s https://example.com/health
+```
+
+> 备注：服务器是 arm64，本地跨架构构建慢，因此优先在服务器本地构建；若走 ACR 镜像，`push.sh` 必须同时构建 `linux/amd64` 与 `linux/arm64`。
+
 ### 数据库操作
 
 ```bash
@@ -695,6 +937,53 @@ BACKEND_TAG=v1.0 FRONTEND_TAG=v1.0 docker compose -f docker-compose.pull.yml up 
 $env:BACKEND_TAG="v1.0"; $env:FRONTEND_TAG="v1.0"; docker compose -f docker-compose.pull.yml pull
 $env:BACKEND_TAG="v1.0"; $env:FRONTEND_TAG="v1.0"; docker compose -f docker-compose.pull.yml up -d
 ```
+
+### 6. 公网前端能打开，但 API 全部 500
+
+模型新增了字段但数据库没执行对应迁移（例如 `projects.attachments` 对应的 `013`）。在生产目录执行：
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.build.yml exec -T backend alembic upgrade head
+docker compose --env-file .env.prod -f docker-compose.build.yml restart backend
+```
+
+> 原则：模型改动必须配 Alembic 迁移，不能只改模型不写迁移。
+
+### 7. 服务器上执行 compose 后"数据没了"
+
+多半是漏了 `-f` 参数：Compose 向上找到仓库根目录的本地 `docker-compose.yml`，用另一个项目名起了一套新容器，原容器仍在但 `ps` 看不到。用下面的命令确认：
+
+```bash
+docker ps -a | grep captureos
+docker inspect captureos-backend --format '{{ index .Config.Labels "com.docker.compose.project" }} {{ index .Config.Labels "com.docker.compose.project.config_files" }}'
+```
+
+确认后统一使用完整前缀：`docker compose --env-file .env.prod -f docker-compose.build.yml ...`。**不要为了"清理"删除 `deploy_postgres_data` 卷。**
+
+### 8. 修改 `.env.prod` 数据库密码后，db 认证失败
+
+`postgres_data` 持久化卷里保留的是旧密码，改环境变量不会更新库内用户密码。处理方式（危险，先确认备份）：
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.build.yml down
+docker volume rm deploy_postgres_data
+docker compose --env-file .env.prod -f docker-compose.build.yml up -d
+docker compose --env-file .env.prod -f docker-compose.build.yml exec -T backend alembic upgrade head
+```
+
+### 9. 恢复备份后新建记录报 duplicate key
+
+`pg_restore` 只恢复了行数据，序列没有推进。恢复后对每张表校准序列：
+
+```sql
+SELECT setval('knowledge_id_seq', (SELECT COALESCE(MAX(id),1) FROM knowledge));
+-- 同样处理 projects/issues/solutions/decisions/experiences/reviews/tags/relations/entity_tags/file_attachments/users
+```
+
+### 10. 访问域名返回 502 / 521
+
+- 502：源站 nginx 没启动、配置错误，或 `proxy_pass` 指向的 `127.0.0.1:3003` / `127.0.0.1:8000` 没有服务。先 `nginx -t`、`curl 127.0.0.1:8000/health`、`docker ps`。
+- 521：Cloudflare 连不上源站 80，检查服务器防火墙/安全组是否放行 80、nginx 是否监听 `0.0.0.0:80`。
 
 ---
 
@@ -1001,6 +1290,25 @@ $env:BACKEND_TAG="v1.0"; $env:FRONTEND_TAG="v1.0"; docker compose -f docker-comp
 
 ---
 
+### 第二十阶段：公网部署 + 多用户认证（v1.18）
+
+**做了什么：**
+- **公网部署**：新增 `deploy/` 目录（`docker-compose.build.yml` / `docker-compose.prod.yml`、`.env.prod.example`、`init.sh` / `deploy.sh`、宿主机 nginx 配置、备份脚本），在公网 VPS（arm64）上线 <https://example.com>
+- **HTTPS 方案**：Cloudflare 以 Flexible 模式终止 TLS，回源到源站 80；源站用宿主机原生 nginx 反代，完全避开被 已有代理服务 占用的 443
+- **端口重排**：frontend 绑定 `127.0.0.1:3003`（避开服务器 已有监控服务 的 3000）；backend `127.0.0.1:8000`；db `127.0.0.1:5432` 仅回环，供 Navicat 走 SSH 隧道
+- **多用户认证**：新增 `users` 表，所有实体与 tags 增加 `user_id` 外键；bcrypt 密码哈希、图片验证码、JWT（HS256 / 7 天）、登录页、前端路由守卫、退出登录
+- **双模式开关**：`SINGLE_USER_MODE=true` 本地免登录（自动归属 admin）；`false` 生产必须登录。前端通过 `GET /api/auth/config` 运行时判断，避免 `NEXT_PUBLIC_*` 构建时固化
+- **数据库迁移**：`014_add_users_and_user_id.py`（用户表 + user_id）、`015_add_display_name_to_users.py`（用户备注）
+- **线上问题修复**：搜索接口 `_get_min_date` 漏传 `user_id` 导致 500；附件上传时 `options.headers` 覆盖 `Authorization` 导致 401 被踢登录
+- **数据恢复**：迁移 014 内含 `TRUNCATE ... CASCADE`，本地执行时清空实体表，从 `backups/captureos-2026-10-24.sql` 整库恢复，并校准所有自增序列
+- **部署方式调整**：服务器 arm64 本地构建（`docker-compose.build.yml`），保留 ACR 镜像路径（`prod.yml` + `deploy.sh`）作为备选；放弃 服务器面板 OpenResty，停用旧 `captureos-nginx` 容器
+
+**为什么：** 系统从"只能在本地用"变成"可以在公网长期运行、多人各自使用"；已有代理服务 占用 443、已有监控服务 占用 3000 的现实约束决定了端口和 HTTPS 方案；多用户必须解决数据隔离，否则多人使用会互相看到对方数据。
+
+**效果：** 公网可通过 HTTPS 稳定访问；本地开发体验不变（仍然免登录）；每个用户的数据完全隔离；部署、更新、回滚、备份都有明确命令与文档；踩过的坑沉淀为"排障速查表"。
+
+---
+
 ### 设计原则
 
 在整个开发过程中，我们遵循了几个原则：
@@ -1008,8 +1316,9 @@ $env:BACKEND_TAG="v1.0"; $env:FRONTEND_TAG="v1.0"; docker compose -f docker-comp
 1. **不加新模块**：7 个实体已经够用，通过关联和标签建立连接，而不是加第 8 个模块
 2. **后端先行**：每次都是先把数据结构和 API 设计好，再做前端展示
 3. **渐进增强**：先跑通基本功能，再加索引、加推荐、加链路聚合
-4. **个人系统思维**：不做团队协作功能，不做权限管理，保持单用户简单高效
+4. **个人系统思维**：不做团队协作功能，但保留多用户登录与 `user_id` 数据隔离，保证公网多人使用时互不干扰
 5. **行动导向**：仪表盘回答"该做什么"，而不是"有多少数据"
+6. **环境隔离**：本地与公网使用独立 compose、独立端口、独立数据卷，改本地绝不影响线上
 
 ---
 
