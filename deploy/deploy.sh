@@ -12,6 +12,13 @@ cd "$(dirname "$0")"
 set -a; . ./.env.prod; set +a
 DOMAIN="${DOMAIN:-example.com}"
 
+# 防呆：模板里的占位仓库地址不能直接用，否则 pull 必然失败
+if grep -q 'registry\.example\.com' .env.prod; then
+  echo "❌ .env.prod 中的 BACKEND_IMAGE/FRONTEND_IMAGE 仍是模板占位地址"
+  echo "   请改成真实仓库地址，例如 crpi-xxxx.cn-hangzhou.personal.cr.aliyuncs.com/captureos/captureos-backend:v1.18"
+  exit 1
+fi
+
 echo "🔄 拉取最新镜像..."
 docker compose --env-file .env.prod -f docker-compose.prod.yml pull
 
