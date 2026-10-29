@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import useSWR, { SWRConfig } from 'swr';
 import { fetchAPI } from '@/lib/api';
 import { formatBeijingTime } from '@/lib/time';
+import { renderMarkdown, extractOutline, type OutlineItem } from '@/lib/markdown';
 import { downloadFile } from '@/lib/download';
 import TagPicker from './TagPicker';
 import RelationPicker from './RelationPicker';
@@ -29,6 +30,84 @@ interface RelationType {
   name: string;
   description: string | null;
   reverse_name: string | null;
+}
+
+/** Markdown 长文本：右上角可展开正文大纲 */
+function MarkdownBlock({ label, text }: { label: string; text: string }) {
+  const [open, setOpen] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const outline = useMemo(() => extractOutline(text), [text]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  const jumpTo = (item: OutlineItem) => {
+    const target = rootRef.current?.querySelector<HTMLElement>(`#${item.id}`);
+    target?.scrollIntoView({ block: 'start' });
+    setActiveId(item.id);
+  };
+
+  return (
+    <div ref={rootRef} className="mb-4">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
+        {outline.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            aria-haspopup="true"
+            className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded border transition-colors ${
+              open
+                ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
+                : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
+          >
+            <span>☰</span>
+            <span>大纲</span>
+            <span className="tabular-nums text-gray-400 dark:text-gray-500">{outline.length}</span>
+          </button>
+        )}
+      </div>
+      {/* 展开时右侧让出独立一列目录，正文变窄但不被遮挡 */}
+      <div className={open ? 'flex gap-4' : ''}>
+        <div
+          className="min-w-0 flex-1 text-sm leading-relaxed [&_a]:text-blue-600 dark:[&_a]:text-blue-400"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
+        />
+        {open && (
+          <aside className="w-40 shrink-0 self-start border-l border-gray-200 pl-3 dark:border-gray-700">
+            <p className="mb-1 text-[11px] text-gray-400 dark:text-gray-500">大纲 · {outline.length}</p>
+            <div className="flex flex-col gap-1">
+              {outline.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => jumpTo(item)}
+                  className={`w-full text-left pr-2 py-1 rounded text-xs truncate transition-colors ${
+                    activeId === item.id
+                      ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                  style={{ paddingLeft: `${6 + (item.level - 1) * 10}px` }}
+                  title={item.text}
+                >
+                  {item.text}
+                </button>
+              ))}
+            </div>
+          </aside>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // 实体类型 → 列表页路由（knowledge 是单数路由，不能用 +s 推导）
@@ -344,12 +423,11 @@ export default function EntityDetail({
                 'options', 'source_url', 'github_url', 'tech_stack', 'run_command'].includes(key)) return null;
           if (value === null || value === undefined || value === '') return null;
           return (
-            <div key={key} className="mb-4">
-              <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">
-                {FIELD_LABELS[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-              </span>
-              <div className="text-sm whitespace-pre-wrap leading-relaxed">{renderField(key, value)}</div>
-            </div>
+            <MarkdownBlock
+              key={key}
+              label={FIELD_LABELS[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+              text={String(value)}
+            />
           );
         })}
 

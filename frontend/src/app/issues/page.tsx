@@ -41,15 +41,16 @@ const fields = [
     name: 'status',
     label: '状态',
     type: 'select' as const,
+    layout: 'meta' as const,
     options: issueStatusOptions.map(o => ({ value: o.value, label: o.label })),
   },
   {
-    name: 'priority', label: '优先级', type: 'select' as const,
+    name: 'priority', label: '优先级', type: 'select' as const, layout: 'meta' as const,
     options: priorityOptions,
   },
   { name: 'root_cause', label: '根本原因', type: 'textarea' as const },
-  { name: 'discovered_date', label: '发现时间', type: 'datetime-local' as const },
-  { name: 'resolved_date', label: '解决日期', type: 'date' as const },
+  { name: 'discovered_date', label: '发现时间', type: 'datetime-local' as const, layout: 'meta' as const },
+  { name: 'resolved_date', label: '解决日期', type: 'date' as const, layout: 'meta' as const },
   { name: 'attachments', label: '附件', type: 'attachments' as const },
 ];
 

@@ -36,16 +36,15 @@ type Knowledge = {
 
 const fields = [
   { name: 'title', label: '标题', required: true },
-  { name: 'content', label: '内容', type: 'textarea' as const, rows: 8 },
-  { name: 'category', label: '分类' },
-  { name: 'source', label: '来源' },
+  { name: 'content', label: '内容', type: 'textarea' as const, rows: 12 },
+  { name: 'category', label: '分类', layout: 'meta' as const },
+  { name: 'source', label: '来源', layout: 'meta' as const },
   {
-    name: 'status', label: '状态', type: 'select' as const,
+    name: 'status', label: '状态', type: 'select' as const, layout: 'meta' as const,
     options: knowledgeStatusOptions.map(o => ({ value: o.value, label: o.label })),
   },
   {
-    name: 'confidence', label: '置信度 (0-10)', type: 'select' as const,
-    options: Array.from({ length: 11 }, (_, i) => ({ value: String(i), label: `${i} (${i * 10}%)` })),
+    name: 'confidence', label: '置信度', type: 'confidence' as const, layout: 'meta' as const,
   },
   { name: 'attachments', label: '附件', type: 'attachments' as const },
 ];

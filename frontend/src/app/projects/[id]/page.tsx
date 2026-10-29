@@ -19,29 +19,29 @@ interface PendingFile {
 
 const fields = [
   { name: 'title', label: '标题', required: true },
-  { name: 'description', label: '描述', type: 'textarea' as const, rows: 6 },
-  { name: 'status', label: '状态', type: 'select' as const, options: [
+  { name: 'description', label: '描述', type: 'textarea' as const, rows: 8 },
+  { name: 'status', label: '状态', type: 'select' as const, layout: 'meta' as const, options: [
     { value: 'active', label: '进行中' },
     { value: 'completed', label: '已完成' },
     { value: 'paused', label: '暂停' },
     { value: 'cancelled', label: '已取消' },
   ]},
-  { name: 'start_date', label: '开始日期', type: 'date' as const },
-  { name: 'end_date', label: '结束日期', type: 'date' as const },
-  { name: 'priority', label: '优先级', type: 'select' as const, options: [
+  { name: 'start_date', label: '开始日期', type: 'date' as const, layout: 'meta' as const },
+  { name: 'end_date', label: '结束日期', type: 'date' as const, layout: 'meta' as const },
+  { name: 'priority', label: '优先级', type: 'select' as const, layout: 'meta' as const, options: [
     { value: '紧急', label: '🔴 紧急' }, { value: '高', label: '🟠 高' },
     { value: '中', label: '🟡 中' }, { value: '低', label: '🟢 低' },
   ]},
   { name: 'source_url', label: '源文件地址', placeholder: 'D:\\projects\\xxx' },
   { name: 'github_url', label: 'GitHub 地址', placeholder: 'https://github.com/...' },
-  { name: 'tool', label: '使用工具', type: 'select' as const, options: [
+  { name: 'tool', label: '使用工具', type: 'select' as const, layout: 'meta' as const, options: [
     { value: 'Claude Code', label: 'Claude Code' },
     { value: 'qclaw', label: 'qclaw' },
     { value: '手写', label: '手写' },
     { value: 'AI辅助', label: 'AI辅助' },
   ]},
   { name: 'run_command', label: '运行方式', type: 'textarea' as const, rows: 3, placeholder: 'docker compose up -d 等' },
-  { name: 'tech_stack', label: '技术栈', placeholder: 'Next.js, FastAPI, PostgreSQL' },
+  { name: 'tech_stack', label: '技术栈', layout: 'meta' as const, placeholder: 'Next.js, FastAPI, PostgreSQL' },
   { name: 'attachments', label: '附件', type: 'attachments' as const },
 ];
 

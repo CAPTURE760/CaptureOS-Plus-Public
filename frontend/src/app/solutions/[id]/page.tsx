@@ -20,18 +20,18 @@ interface PendingFile {
 
 const fields = [
   { name: 'title', label: '标题', required: true },
-  { name: 'status', label: '状态', type: 'select' as const, options: solutionStatusOptions },
-  { name: 'description', label: '描述', type: 'textarea' as const, rows: 4 },
-  { name: 'approach', label: '方法', type: 'textarea' as const, rows: 5 },
-  { name: 'outcome', label: '结果', type: 'textarea' as const, rows: 5 },
-  { name: 'effectiveness', label: '有效性', type: 'select' as const, options: [
+  { name: 'status', label: '状态', type: 'select' as const, layout: 'meta' as const, options: solutionStatusOptions },
+  { name: 'description', label: '描述', type: 'textarea' as const, rows: 6 },
+  { name: 'approach', label: '方法', type: 'textarea' as const, rows: 10 },
+  { name: 'outcome', label: '结果', type: 'textarea' as const, rows: 8 },
+  { name: 'effectiveness', label: '有效性', type: 'select' as const, layout: 'meta' as const, options: [
     { value: '1', label: '⭐ 1 - 无效' },
     { value: '2', label: '⭐⭐ 2 - 效果一般' },
     { value: '3', label: '⭐⭐⭐ 3 - 有效果' },
     { value: '4', label: '⭐⭐⭐⭐ 4 - 效果很好' },
     { value: '5', label: '⭐⭐⭐⭐⭐ 5 - 非常有效' },
   ]},
-  { name: 'implemented_date', label: '实施时间', type: 'datetime-local' as const },
+  { name: 'implemented_date', label: '实施时间', type: 'datetime-local' as const, layout: 'meta' as const },
   { name: 'attachments', label: '附件', type: 'attachments' as const },
 ];
 

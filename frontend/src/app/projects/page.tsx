@@ -41,23 +41,24 @@ type Project = {
 
 const fields = [
   { name: 'title', label: '标题', required: true },
-  { name: 'description', label: '描述', type: 'textarea' as const, rows: 6 },
+  { name: 'description', label: '描述', type: 'textarea' as const, rows: 8 },
   {
     name: 'status',
     label: '状态',
     type: 'select' as const,
+    layout: 'meta' as const,
     options: projectStatusOptions.map(o => ({ value: o.value, label: o.label })),
   },
-  { name: 'start_date', label: '开始时间', type: 'datetime-local' as const },
-  { name: 'end_date', label: '结束时间', type: 'datetime-local' as const },
+  { name: 'start_date', label: '开始时间', type: 'datetime-local' as const, layout: 'meta' as const },
+  { name: 'end_date', label: '结束时间', type: 'datetime-local' as const, layout: 'meta' as const },
   {
-    name: 'priority', label: '优先级', type: 'select' as const,
+    name: 'priority', label: '优先级', type: 'select' as const, layout: 'meta' as const,
     options: priorityOptions,
   },
   { name: 'source_url', label: '源文件地址', placeholder: 'D:\\projects\\xxx' },
   { name: 'github_url', label: 'GitHub 地址', placeholder: 'https://github.com/...' },
   {
-    name: 'tool', label: '使用工具', type: 'select' as const,
+    name: 'tool', label: '使用工具', type: 'select' as const, layout: 'meta' as const,
     options: [
       { value: 'Claude Code', label: 'Claude Code' },
       { value: 'qclaw', label: 'qclaw' },
@@ -66,7 +67,7 @@ const fields = [
     ],
   },
   { name: 'run_command', label: '运行方式', type: 'textarea' as const, rows: 3, placeholder: 'docker compose up -d 等' },
-  { name: 'tech_stack', label: '技术栈', placeholder: 'Next.js, FastAPI, PostgreSQL' },
+  { name: 'tech_stack', label: '技术栈', layout: 'meta' as const, placeholder: 'Next.js, FastAPI, PostgreSQL' },
   { name: 'attachments', label: '附件', type: 'attachments' as const },
 ];
 

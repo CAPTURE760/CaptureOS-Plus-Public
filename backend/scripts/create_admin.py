@@ -52,7 +52,7 @@ async def create_user(username: str, password: str, is_admin: bool, display_name
         await db.commit()
         role = "管理员" if is_admin else "普通用户"
         name = f"（{display_name}）" if display_name else ""
-        print(f"✓ 已{action}{role}用户: {username}{name}")
+        print(f"✓ 已{action}{role}: {username}{name}")
 
 
 def main() -> None:

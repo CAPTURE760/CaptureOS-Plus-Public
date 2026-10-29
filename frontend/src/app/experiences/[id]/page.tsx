@@ -19,11 +19,11 @@ interface PendingFile {
 
 const fields = [
   { name: 'title', label: '标题', required: true },
-  { name: 'summary', label: '摘要', type: 'textarea' as const, rows: 4 },
-  { name: 'context', label: '背景', type: 'textarea' as const, rows: 5 },
-  { name: 'result', label: '结果', type: 'textarea' as const, rows: 5 },
-  { name: 'lesson', label: '教训', type: 'textarea' as const, rows: 5 },
-  { name: 'event_date', label: '事件日期', type: 'date' as const },
+  { name: 'summary', label: '摘要', type: 'textarea' as const, rows: 6 },
+  { name: 'context', label: '背景', type: 'textarea' as const, rows: 8 },
+  { name: 'result', label: '结果', type: 'textarea' as const, rows: 8 },
+  { name: 'lesson', label: '教训', type: 'textarea' as const, rows: 8 },
+  { name: 'event_date', label: '事件日期', type: 'date' as const, layout: 'meta' as const },
   { name: 'attachments', label: '附件', type: 'attachments' as const },
 ];
 

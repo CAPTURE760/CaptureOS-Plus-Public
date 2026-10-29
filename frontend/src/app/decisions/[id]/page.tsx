@@ -19,18 +19,18 @@ interface PendingFile {
 
 const fields = [
   { name: 'title', label: '标题', required: true },
-  { name: 'background', label: '背景', type: 'textarea' as const, rows: 5 },
-  { name: 'reason', label: '理由', type: 'textarea' as const, rows: 5 },
-  { name: 'result', label: '结果', type: 'textarea' as const, rows: 5 },
-  { name: 'decision_date', label: '决策日期', type: 'date' as const },
-  { name: 'status', label: '状态', type: 'select' as const, options: [
+  { name: 'background', label: '背景', type: 'textarea' as const, rows: 8 },
+  { name: 'reason', label: '理由', type: 'textarea' as const, rows: 8 },
+  { name: 'result', label: '结果', type: 'textarea' as const, rows: 8 },
+  { name: 'decision_date', label: '决策日期', type: 'date' as const, layout: 'meta' as const },
+  { name: 'status', label: '状态', type: 'select' as const, layout: 'meta' as const, options: [
     { value: 'pending', label: '📋 待执行' },
     { value: 'in_progress', label: '🔄 执行中' },
     { value: 'completed', label: '✅ 已完成' },
     { value: 'deprecated', label: '❌ 已废弃' },
   ]},
-  { name: 'confidence', label: '置信度 (0-10)', type: 'select' as const,
-    options: Array.from({ length: 11 }, (_, i) => ({ value: String(i), label: `${i} (${i * 10}%)` })),
+  {
+    name: 'confidence', label: '置信度', type: 'confidence' as const, layout: 'meta' as const,
   },
   { name: 'attachments', label: '附件', type: 'attachments' as const },
 ];

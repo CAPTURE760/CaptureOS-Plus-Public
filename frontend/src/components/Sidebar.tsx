@@ -18,6 +18,12 @@ interface CountsData {
   knowledge: number;
 }
 
+interface CurrentUser {
+  username: string;
+  display_name: string | null;
+  is_admin: boolean;
+}
+
 interface GlobalSearchResult {
   entity_type: string;
   entity_id: number;
@@ -47,15 +53,11 @@ export default function Sidebar() {
 
   // ─── 认证模式（运行时从后端获取；默认多用户，获取后单用户模式隐藏退出按钮） ───
   const [multiUserMode, setMultiUserMode] = useState(true);
-  const [currentUsername, setCurrentUsername] = useState<string>('');
   useEffect(() => {
     getAuthConfig().then((c) => setMultiUserMode(!c.single_user_mode));
-    if (typeof window !== 'undefined' && localStorage.getItem('token')) {
-      fetchAPI<{ username: string }>('/auth/me')
-        .then((u) => setCurrentUsername(u.username))
-        .catch(() => setCurrentUsername(''));
-    }
   }, []);
+  // 当前用户（单用户模式后端直接返回默认用户，多用户模式靠 token）
+  const { data: currentUser } = useSWR<CurrentUser>('/auth/me', fetchAPI);
 
   // ─── 主题切换（null 表示尚未读取客户端主题，避免 SSR 文案不一致） ───
   const [isDark, setIsDark] = useState<boolean | null>(null);
@@ -296,11 +298,21 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* 主题切换 + 退出登录 */}
+        {/* 当前用户 + 主题切换 + 退出登录 */}
         <div className="p-4 border-t border-gray-700 space-y-1">
-          {multiUserMode && currentUsername && (
-            <div className="px-3 py-2 text-center text-xs text-gray-400">
-              👤 {currentUsername}
+          {currentUser && (
+            <div className="mb-2 flex items-center gap-2 px-2 py-2 rounded-lg bg-gray-800/60">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                {(currentUser.display_name || currentUser.username).slice(0, 1).toUpperCase()}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm text-gray-200" title={currentUser.username}>
+                  {currentUser.display_name || currentUser.username}
+                </span>
+                <span className="block text-[11px] text-gray-500">
+                  {multiUserMode ? (currentUser.is_admin ? '管理员' : '成员') : '本地单用户'}
+                </span>
+              </span>
             </div>
           )}
           <button

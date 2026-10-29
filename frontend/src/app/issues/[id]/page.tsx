@@ -21,7 +21,7 @@ const fields = [
   { name: 'title', label: '标题', required: true },
   { name: 'description', label: '描述', type: 'textarea' as const },
   {
-    name: 'status', label: '状态', type: 'select' as const,
+    name: 'status', label: '状态', type: 'select' as const, layout: 'meta' as const,
     options: [
       { value: 'open', label: '待解决' },
       { value: 'in_progress', label: '处理中' },
@@ -30,7 +30,7 @@ const fields = [
     ],
   },
   {
-    name: 'priority', label: '优先级', type: 'select' as const,
+    name: 'priority', label: '优先级', type: 'select' as const, layout: 'meta' as const,
     options: [
       { value: '紧急', label: '🔴 紧急' },
       { value: '高', label: '🟠 高' },
@@ -39,8 +39,8 @@ const fields = [
     ],
   },
   { name: 'root_cause', label: '根本原因', type: 'textarea' as const },
-  { name: 'discovered_date', label: '发现日期', type: 'date' as const },
-  { name: 'resolved_date', label: '解决日期', type: 'date' as const },
+  { name: 'discovered_date', label: '发现日期', type: 'date' as const, layout: 'meta' as const },
+  { name: 'resolved_date', label: '解决日期', type: 'date' as const, layout: 'meta' as const },
   { name: 'attachments', label: '附件', type: 'attachments' as const },
 ];
 

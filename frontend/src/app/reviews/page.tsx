@@ -36,11 +36,12 @@ type Review = {
 
 const fields = [
   { name: 'title', label: '标题', required: true },
-  { name: 'event_summary', label: '事件摘要', type: 'textarea' as const, rows: 5 },
+  { name: 'event_summary', label: '事件摘要', type: 'textarea' as const, rows: 8 },
   {
     name: 'rating',
     label: '评分 (1-5)',
     type: 'select' as const,
+    layout: 'meta' as const,
     options: [
       { value: '1', label: '1 - 很差' },
       { value: '2', label: '2 - 差' },
@@ -49,7 +50,7 @@ const fields = [
       { value: '5', label: '5 - 很好' },
     ],
   },
-  { name: 'period', label: '复盘周期', type: 'select' as const, options: [
+  { name: 'period', label: '复盘周期', type: 'select' as const, layout: 'meta' as const, options: [
     { value: '日复盘', label: '📅 日复盘 — 每天回顾' },
     { value: '周复盘', label: '📆 周复盘 — 每周总结' },
     { value: '月复盘', label: '🗓️ 月复盘 — 每月回顾' },
@@ -58,7 +59,7 @@ const fields = [
     { value: '项目复盘', label: '📁 项目复盘 — 项目结束后' },
     { value: '临时复盘', label: '📝 临时复盘 — 单次事件' },
   ]},
-  { name: 'review_date', label: '复盘时间', type: 'datetime-local' as const },
+  { name: 'review_date', label: '复盘时间', type: 'datetime-local' as const, layout: 'meta' as const },
   { name: 'attachments', label: '附件', type: 'attachments' as const },
 ];
 
